@@ -1,0 +1,20 @@
+{
+  "Name": "Fashion Sense Outfit Preview",
+  "Author": "NatrollEXE",
+  "Version": "1.0.4",
+  "Description": "Adds a preview window for Fashion Sense saved outfits, letting players view outfits before equipping them.",
+  "UniqueID": "NatrollEXE.FashionSenseOutfitPreview",
+  "EntryDll": "FashionSenseOutfitPreview.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": [],
+  "Dependencies": [
+    {
+      "UniqueID": "PeacefulEnd.FashionSense",
+      "IsRequired": true
+    },
+    {
+      "UniqueID": "spacechase0.GenericModConfigMenu",
+      "IsRequired": false
+    }
+  ]
+}

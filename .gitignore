@@ -1,0 +1,13 @@
+## Pastas de build/IDE do Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+## Outras pastas geradas
+i18n/*.generated.*
+
+## Arquivos de sistema
+.DS_Store
+Thumbs.db
