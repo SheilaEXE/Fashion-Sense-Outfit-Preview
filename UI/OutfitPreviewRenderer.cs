@@ -16,9 +16,7 @@ namespace FashionSenseOutfitPreview;
 /// </summary>
 internal sealed class OutfitPreviewRenderer
 {
-    // ──────────────────────────────────────────────────────────────────────────
-    //  State
-    // ──────────────────────────────────────────────────────────────────────────
+    // State
 
     private readonly IMonitor _monitor;
 
@@ -29,18 +27,14 @@ internal sealed class OutfitPreviewRenderer
     public bool IsPreviewActive => _activeOutfitName is not null;
     public string? ActiveOutfitName => _activeOutfitName;
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Constructor
-    // ──────────────────────────────────────────────────────────────────────────
+    // Constructor
 
     public OutfitPreviewRenderer(IMonitor monitor)
     {
         _monitor = monitor;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Outfit apply / restore
-    // ──────────────────────────────────────────────────────────────────────────
+    // Outfit apply / restore
 
     /// <summary>
     /// Silently apply an outfit for preview.
@@ -128,7 +122,7 @@ internal sealed class OutfitPreviewRenderer
             // alias so previewing the freshly-renamed outfit works right away.
             string cachedLookupName = from;
 
-            if (_renamePreviewAliases.TryGetValue(from, out string previousCachedName))
+            if (_renamePreviewAliases.TryGetValue(from, out string? previousCachedName))
             {
                 cachedLookupName = previousCachedName;
                 _renamePreviewAliases.Remove(from);
@@ -225,9 +219,7 @@ internal sealed class OutfitPreviewRenderer
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Drawing
-    // ──────────────────────────────────────────────────────────────────────────
+    // Drawing
 
     /// <summary>Scale multiplier applied on top of the normal 4× UI scale.</summary>
     private const float DrawScale = 1.5f;
@@ -337,7 +329,7 @@ internal sealed class OutfitPreviewRenderer
             who.faceDirection(facingDirection);
             NormalizePreviewPose(who);
 
-            // ── Step 1: ensure our render target exists ───────────────────────
+            // Step 1: ensure our render target exists
             GraphicsDevice gd = Game1.graphics.GraphicsDevice;
 
             if (_renderTarget == null
@@ -350,7 +342,7 @@ internal sealed class OutfitPreviewRenderer
                     false, SurfaceFormat.Color, DepthFormat.None);
             }
 
-            // ── Step 2: render farmer into the large offscreen canvas ─────────
+            // Step 2: render farmer into the large offscreen canvas
             RenderTarget2D? prevTarget = gd.GetRenderTargets().FirstOrDefault().RenderTarget as RenderTarget2D;
 
             gd.SetRenderTarget(_renderTarget);
@@ -396,10 +388,10 @@ internal sealed class OutfitPreviewRenderer
                 innerBatch.End();
             }
 
-            // ── Step 3: restore the previous render target ────────────────────
+            // Step 3: restore the previous render target
             gd.SetRenderTarget(prevTarget);
 
-            // ── Step 4: blit scaled canvas, centred on the portrait box ───────
+            // Step 4: blit scaled canvas, centred on the portrait box
             // The dest rect is intentionally bigger than the portrait box frame
             // so tall/wide accessories can overflow it naturally.
             float destW = NativeW * DrawScale;
@@ -425,9 +417,7 @@ internal sealed class OutfitPreviewRenderer
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Private helpers – rendering
-    // ──────────────────────────────────────────────────────────────────────────
+    // Private helpers – rendering
 
     private static void NormalizePreviewPose(Farmer who)
     {
@@ -436,9 +426,7 @@ internal sealed class OutfitPreviewRenderer
         who.faceDirection(who.FacingDirection);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Private helpers – Fashion Sense reflection
-    // ──────────────────────────────────────────────────────────────────────────
+    // Private helpers – Fashion Sense reflection
 
     private static object? GetOutfitManager()
     {
@@ -498,7 +486,7 @@ internal sealed class OutfitPreviewRenderer
         object? outfit = GetOutfit(outfitManager, outfitName);
 
         if (outfit is null
-            && _renamePreviewAliases.TryGetValue(outfitName, out string cachedName))
+            && _renamePreviewAliases.TryGetValue(outfitName, out string? cachedName))
         {
             outfit = GetOutfit(outfitManager, cachedName);
         }

@@ -19,24 +19,20 @@ namespace FashionSenseOutfitPreview;
 ///
 /// Responsibilities:
 ///  1. Register GMCM config.
-///  2. Inject an "Expandir" button into Fashion Sense's OutfitsMenu.
+///  2. Inject an "Expand" button into Fashion Sense's OutfitsMenu.
 ///  3. Maintain the quick-preview (Ctrl+Click) from the original mod.
-///  4. Open ExpandedOutfitsMenu when the Expandir button is clicked.
+///  4. Open ExpandedOutfitsMenu when the Expand button is clicked.
 /// </summary>
 internal sealed class ModEntry : Mod
 {
     internal static bool SuppressNextAutoOpen { get; set; }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Constants
-    // ──────────────────────────────────────────────────────────────────────────
+    // Constants
 
     private const string FashionSenseOutfitsMenuFqn = "FashionSense.Framework.UI.OutfitsMenu";
     private const string CreateOutfitInternalName   = "PeacefulEnd.Create.Outfit.Button";
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  State
-    // ──────────────────────────────────────────────────────────────────────────
+    // State
 
     private ModConfig             _config          = new();
     private CategoryManager       _categoryManager = new();
@@ -64,9 +60,7 @@ internal sealed class ModEntry : Mod
     // Expand button (injected over the FS menu)
     private Rectangle _expandButtonRect;
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Entry
-    // ──────────────────────────────────────────────────────────────────────────
+    // Entry
 
     public override void Entry(IModHelper helper)
     {
@@ -81,9 +75,7 @@ internal sealed class ModEntry : Mod
         helper.Events.Display.MenuChanged      += OnMenuChanged;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  GMCM
-    // ──────────────────────────────────────────────────────────────────────────
+    // GMCM
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
@@ -124,9 +116,7 @@ internal sealed class ModEntry : Mod
         );
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Menu lifecycle
-    // ──────────────────────────────────────────────────────────────────────────
+    // Menu lifecycle
 
     private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
     {
@@ -165,16 +155,14 @@ internal sealed class ModEntry : Mod
         _pendingFsMenu = null;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Input
-    // ──────────────────────────────────────────────────────────────────────────
+    // Input
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
         if (!Context.IsWorldReady)
             return;
 
-        // ── When expanded menu has a text field focused, suppress game shortcuts ──
+        // When expanded menu has a text field focused, suppress game shortcuts
         // The game processes chat/journal/etc. before receiveKeyPress, so we need
         // to intercept at the SMAPI level. We suppress the button AND manually
         // forward it to receiveKeyPress so the character still gets typed.
@@ -189,14 +177,14 @@ internal sealed class ModEntry : Mod
             return;
         }
 
-        // ── Quick-preview is open: route all input to it ──
+        // Quick-preview is open: route all input to it
         if (_quickPreviewOpen)
         {
             HandleQuickPreviewInput(e);
             return;
         }
 
-        // ── Nothing if the active menu isn't the FS outfits menu ──
+        // Nothing if the active menu isn't the FS outfits menu
         IClickableMenu? menu = Game1.activeClickableMenu;
 
         if (!IsFashionSenseOutfitsMenu(menu))
@@ -205,7 +193,7 @@ internal sealed class ModEntry : Mod
         int x = Game1.getMouseX();
         int y = Game1.getMouseY();
 
-        // ── Expanded menu hotkey ──
+        // Expanded menu hotkey
         if (IsExpandedMenuShortcut(e.Button))
         {
             Helper.Input.Suppress(e.Button);
@@ -213,7 +201,7 @@ internal sealed class ModEntry : Mod
             return;
         }
 
-        // ── "Expandir" button ──
+        // "Expand" button
         if (e.Button == SButton.MouseLeft && _expandButtonRect.Contains(x, y))
         {
             Helper.Input.Suppress(e.Button);
@@ -221,7 +209,7 @@ internal sealed class ModEntry : Mod
             return;
         }
 
-        // ── Quick-preview: Ctrl + Left Click on an outfit ──
+        // Quick-preview: Ctrl + Left Click on an outfit
         if (e.Button != SButton.MouseLeft)
             return;
 
@@ -237,9 +225,7 @@ internal sealed class ModEntry : Mod
         OpenQuickPreview(outfitName);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Quick-preview (original Ctrl+Click behaviour)
-    // ──────────────────────────────────────────────────────────────────────────
+    // Quick-preview (original Ctrl+Click behaviour)
 
     private void HandleQuickPreviewInput(ButtonPressedEventArgs e)
     {
@@ -300,9 +286,7 @@ internal sealed class ModEntry : Mod
         Game1.playSound("smallSelect");
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Expanded menu
-    // ──────────────────────────────────────────────────────────────────────────
+    // Expanded menu
 
     private void OpenExpandedMenu(IClickableMenu fashionSenseMenu)
     {
@@ -340,15 +324,13 @@ internal sealed class ModEntry : Mod
         return result.Distinct().ToList();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Rendering – Expand button + quick-preview overlay
-    // ──────────────────────────────────────────────────────────────────────────
+    // Rendering – Expand button + quick-preview overlay
 
     private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
     {
         IClickableMenu? menu = Game1.activeClickableMenu;
 
-        // Draw the "Expandir" button on top of the FS outfits menu
+        // Draw the "Expand" button on top of the FS outfits menu
         if (IsFashionSenseOutfitsMenu(menu) && !_quickPreviewOpen)
         {
             UpdateExpandButtonLayout(menu!);
@@ -488,9 +470,7 @@ internal sealed class ModEntry : Mod
         _quickCloseButtonHitbox = Inflate(_quickCloseButton, 16, 18);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Fashion Sense helpers (reflection)
-    // ──────────────────────────────────────────────────────────────────────────
+    // Fashion Sense helpers (reflection)
 
     private string? TryGetClickedOutfitName(IClickableMenu menu, int x, int y)
     {
@@ -558,9 +538,7 @@ internal sealed class ModEntry : Mod
         return list[index] is ClickableComponent c && c.containsPoint(x, y);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Generic reflection utilities
-    // ──────────────────────────────────────────────────────────────────────────
+    // Generic reflection utilities
 
     private static object? GetInstanceField(object target, string name)
         => target.GetType()
@@ -586,9 +564,7 @@ internal sealed class ModEntry : Mod
         return field?.GetValue(target)?.ToString();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Misc utilities
-    // ──────────────────────────────────────────────────────────────────────────
+    // Misc utilities
 
     private bool IsPreviewShortcutHeld()
         => _config.PreviewShortcut != SButton.None

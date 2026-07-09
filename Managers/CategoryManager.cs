@@ -14,9 +14,7 @@ internal sealed class CategoryManager
 {
     private const string ModDataKey = "FashionSenseOutfitPreview.Categories";
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Public API
-    // ──────────────────────────────────────────────────────────────────────────
+    // Public API
 
     /// <summary>Load all categories from the current player's modData.</summary>
     public List<OutfitCategory> LoadCategories()
@@ -103,9 +101,7 @@ internal sealed class CategoryManager
         => categories.Where(c => c.OutfitNames.Contains(outfitName)).Select(c => c.Name);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  Data model
-// ──────────────────────────────────────────────────────────────────────────────
+// Data model
 
 /// <summary>A named collection of outfit names.</summary>
 internal sealed class OutfitCategory

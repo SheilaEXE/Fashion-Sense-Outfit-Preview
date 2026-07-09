@@ -17,7 +17,7 @@ namespace FashionSenseOutfitPreview;
 /// Layout (1100 × 640):
 /// ┌────────────────────────────────────────────────────────────────────┐
 /// │  [Title]                                               [X Close]  │
-/// │  [All] [Primavera] [Verão] [Pijama] ...   [+ Criar Categoria]     │
+/// │  [All] [Spring] [Summer] [Pajamas] ...   [+ Create Category]      │
 /// │  Search: [_________________________]                               │
 /// ├──────────────────────────────┬────────────────────────────────────┤
 /// │  Outfit grid (scrollable)    │  Player preview panel              │
@@ -25,7 +25,7 @@ namespace FashionSenseOutfitPreview;
 /// │  □ OutfitC   □ OutfitD       │  │   Farmer sprite  │             │
 /// │  ...                         │  └──────────────────┘             │
 /// │                              │  [← ] [→ ]  direction             │
-/// │                              │  [      Equipar     ]             │
+/// │                              │  [       Equip      ]             │
 /// └──────────────────────────────┴────────────────────────────────────┘
 ///
 /// Category mode:
@@ -35,9 +35,7 @@ namespace FashionSenseOutfitPreview;
 /// </summary>
 internal sealed class ExpandedOutfitsMenu : IClickableMenu
 {
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Layout constants (all in UI pixels at 4× scale)
-    // ──────────────────────────────────────────────────────────────────────────
+    // Layout constants (all in UI pixels at 4× scale)
 
     private const int WindowWidth     = 1200;
     private const int WindowHeight    = 700;
@@ -58,20 +56,16 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private static readonly Rectangle LeftArrowSrc  = new(352, 495, 12, 11);
     private static readonly Rectangle RightArrowSrc = new(365, 495, 12, 11);
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Services
-    // ──────────────────────────────────────────────────────────────────────────
+    // Services
 
     private readonly CategoryManager       _categoryManager;
     private readonly TagManager            _tagManager;
     private readonly GlobalOrganizationManager _organizationManager;
     private readonly OutfitPreviewRenderer _renderer;
-    private readonly IClickableMenu?       _parentMenu;
+    private readonly IClickableMenu?       _returnMenu;
     private readonly List<string>          _allOutfitNames;
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  State
-    // ──────────────────────────────────────────────────────────────────────────
+    // State
 
     private List<OutfitCategory> _categories;
     private List<OutfitTag>      _tags;
@@ -90,17 +84,17 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private string? _selectedOutfit;
     private int     _previewFacing = 2;
 
-    // "Criar" submenu (replaces old _createCategoryButton)
-    private bool      _criarSubmenuOpen = false;
+    // "Create" submenu (replaces old _createCategoryButton)
+    private bool      _createSubmenuOpen = false;
     private Rectangle _saveCurrentStyleButton;
-    private Rectangle _criarButton;
-    private Rectangle _criarSubNewCategory;
-    private Rectangle _criarSubNewTag;
-    private Rectangle _criarSubNewColorTag;
-    private Rectangle _criarSubExportOrganization;
-    private Rectangle _criarSubImportOrganization;
+    private Rectangle _createButton;
+    private Rectangle _createSubNewCategory;
+    private Rectangle _createSubNewTag;
+    private Rectangle _createSubNewColorTag;
+    private Rectangle _createSubExportOrganization;
+    private Rectangle _createSubImportOrganization;
 
-    // "Criar categoria / tag" modal
+    // "Create category / tag" modal
     private bool     _creatingCategory    = false;
     private bool     _creatingTag         = false;
     private bool     _savingCurrentOutfit = false;
@@ -146,9 +140,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     // Advanced filter panel
     private readonly AdvancedFilterPanel _advancedPanel = new();
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Computed regions (refreshed in UpdateLayout)
-    // ──────────────────────────────────────────────────────────────────────────
+    // Computed regions (refreshed in UpdateLayout)
 
     private Rectangle _categoryBar;
     private Rectangle _searchBar;
@@ -158,7 +150,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private Rectangle _leftArrow;
     private Rectangle _rightArrow;
     private Rectangle _equipButton;
-    private Rectangle _createCategoryButton;   // kept as alias → _criarButton
+    private Rectangle _createCategoryButton;   // kept as alias → _createButton
     private Rectangle _closeButtonRect;
 
     // Extra buttons (only visible when a custom category is active)
@@ -166,7 +158,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private Rectangle _deleteCategoryButton;
     private Rectangle _deleteOutfitsButton;
     private Rectangle _deleteTrashButton;
-    private Rectangle _advancedButton;    // "Avançado" toggle in the category bar
+    private Rectangle _advancedButton;    // "Advanced" toggle in the category bar
 
     // Confirm modal buttons
     private Rectangle _confirmYesButton;
@@ -190,9 +182,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private Rectangle _modalTextBox;
     private Rectangle _assignDoneButton;
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Constructor
-    // ──────────────────────────────────────────────────────────────────────────
+    // Constructor
 
     public ExpandedOutfitsMenu(
         CategoryManager       categoryManager,
@@ -212,7 +202,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _tagManager      = tagManager;
         _organizationManager = organizationManager;
         _renderer        = renderer;
-        _parentMenu      = parentMenu;
+        _returnMenu      = parentMenu;
         _allOutfitNames  = allOutfitNames.Distinct().ToList();
 
         _categories = _categoryManager.LoadCategories();
@@ -260,9 +250,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Public API
-    // ──────────────────────────────────────────────────────────────────────────
+    // Public API
 
     /// <summary>True when any text field in the menu is actively focused for input.</summary>
     public bool IsTypingFocused => _searchFocused || (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit));
@@ -315,9 +303,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         Game1.playSound("smallSelect");
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  IClickableMenu overrides
-    // ──────────────────────────────────────────────────────────────────────────
+    // IClickableMenu overrides
 
     public override void draw(SpriteBatch b)
     {
@@ -371,7 +357,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
             DrawPreviewPanel(b);
             DrawDropdownOverlay(b);
-            DrawCriarSubmenu(b);
+            DrawCreateSubmenu(b);
             DrawRenameContextMenu(b);
         }
 
@@ -380,16 +366,16 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     public override void receiveLeftClick(int x, int y, bool playSound = true)
     {
-        // Close Criar submenu if clicking anywhere outside it
-        if (_criarSubmenuOpen
-            && !_criarButton.Contains(x, y)
-            && !_criarSubNewCategory.Contains(x, y)
-            && !_criarSubNewTag.Contains(x, y)
-            && !_criarSubNewColorTag.Contains(x, y)
-            && !_criarSubExportOrganization.Contains(x, y)
-            && !_criarSubImportOrganization.Contains(x, y))
+        // Close Create submenu if clicking anywhere outside it
+        if (_createSubmenuOpen
+            && !_createButton.Contains(x, y)
+            && !_createSubNewCategory.Contains(x, y)
+            && !_createSubNewTag.Contains(x, y)
+            && !_createSubNewColorTag.Contains(x, y)
+            && !_createSubExportOrganization.Contains(x, y)
+            && !_createSubImportOrganization.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             // Don't return — still process the click below
         }
 
@@ -438,7 +424,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _dropdownOpen = false;
             _tagDropdownOpen = false;
             _colorDropdownOpen = false;
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             _selectMode = false;
             _selectedForRemoval.Clear();
             _deleteOutfitMode = false;
@@ -450,10 +436,10 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return;
         }
 
-        // Criar submenu items must be handled before category buttons, because the submenu visually overlaps that row.
-        if (!_advancedPanel.IsOpen && _criarSubmenuOpen)
+        // Create submenu items must be handled before category buttons, because the submenu visually overlaps that row.
+        if (!_advancedPanel.IsOpen && _createSubmenuOpen)
         {
-            if (TryHandleCriarSubmenuClick(x, y))
+            if (TryHandleCreateSubmenuClick(x, y))
                 return;
         }
 
@@ -592,10 +578,10 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 return;
             }
 
-            // Criar button — only on the main/all view
+            // Create button — only on the main/all view
             if (IsMainView && _createCategoryButton.Contains(x, y))
             {
-                _criarSubmenuOpen = !_criarSubmenuOpen;
+                _createSubmenuOpen = !_createSubmenuOpen;
                 _searchFocused    = false;
                 _deleteOutfitMode = false;
                 _selectedForDeletion.Clear();
@@ -609,19 +595,19 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 _deleteOutfitMode = !_deleteOutfitMode;
                 _selectedForDeletion.Clear();
                 _searchFocused = false;
-                _criarSubmenuOpen = false;
+                _createSubmenuOpen = false;
                 Game1.playSound("smallSelect");
                 return;
             }
 
-            // Criar submenu items
-            if (_criarSubmenuOpen)
+            // Create submenu items
+            if (_createSubmenuOpen)
             {
-                if (TryHandleCriarSubmenuClick(x, y))
+                if (TryHandleCreateSubmenuClick(x, y))
                     return;
 
                 // Click outside submenu closes it
-                _criarSubmenuOpen = false;
+                _createSubmenuOpen = false;
             }
 
         }
@@ -759,11 +745,11 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         }
     }
 
-    private bool TryHandleCriarSubmenuClick(int x, int y)
+    private bool TryHandleCreateSubmenuClick(int x, int y)
     {
-        if (_criarSubNewCategory.Contains(x, y))
+        if (_createSubNewCategory.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             _creatingCategory    = true;
             _creatingTag         = false;
             _savingCurrentOutfit = false;
@@ -774,9 +760,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return true;
         }
 
-        if (_criarSubNewTag.Contains(x, y))
+        if (_createSubNewTag.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             _creatingTag         = true;
             _creatingCategory    = false;
             _savingCurrentOutfit = false;
@@ -788,9 +774,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return true;
         }
 
-        if (_criarSubNewColorTag.Contains(x, y))
+        if (_createSubNewColorTag.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             _creatingTag         = true;
             _creatingCategory    = false;
             _savingCurrentOutfit = false;
@@ -802,16 +788,16 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return true;
         }
 
-        if (_criarSubExportOrganization.Contains(x, y))
+        if (_createSubExportOrganization.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             ExportOrganization();
             return true;
         }
 
-        if (_criarSubImportOrganization.Contains(x, y))
+        if (_createSubImportOrganization.Contains(x, y))
         {
-            _criarSubmenuOpen = false;
+            _createSubmenuOpen = false;
             ImportOrganization();
             return true;
         }
@@ -875,7 +861,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _dropdownOpen = false;
         _tagDropdownOpen = false;
         _colorDropdownOpen = false;
-        _criarSubmenuOpen = false;
+        _createSubmenuOpen = false;
         RebuildVisibleOutfits();
         Game1.playSound("smallSelect");
     }
@@ -896,7 +882,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _dropdownOpen = false;
         _tagDropdownOpen = false;
         _colorDropdownOpen = false;
-        _criarSubmenuOpen = false;
+        _createSubmenuOpen = false;
         RebuildVisibleOutfits();
         Game1.playSound("smallSelect");
     }
@@ -971,9 +957,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 _selectedForDeletion.Clear();
                 Game1.playSound("smallSelect");
             }
-            else if (_criarSubmenuOpen || _dropdownOpen || _tagDropdownOpen || _colorDropdownOpen || _renameContextMenuOpen)
+            else if (_createSubmenuOpen || _dropdownOpen || _tagDropdownOpen || _colorDropdownOpen || _renameContextMenuOpen)
             {
-                _criarSubmenuOpen = false;
+                _createSubmenuOpen = false;
                 _dropdownOpen = false;
                 _tagDropdownOpen = false;
                 _colorDropdownOpen = false;
@@ -1066,9 +1052,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Drawing helpers
-    // ──────────────────────────────────────────────────────────────────────────
+    // Drawing helpers
 
     private void DrawCategoryBar(SpriteBatch b)
     {
@@ -1099,7 +1083,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 active ? Color.White : Game1.textColor);
         }
 
-        // "Salvar Estilo Atual" and "Criar" only appear on the main/all view.
+        // "Save Current Style" and "Create" only appear on the main/all view.
         if (IsMainView)
         {
             bool saveHovered = _saveCurrentStyleButton.Contains(Game1.getMouseX(), Game1.getMouseY());
@@ -1119,7 +1103,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 new Rectangle(432, 439, 9, 9),
                 _createCategoryButton.X, _createCategoryButton.Y,
                 _createCategoryButton.Width, _createCategoryButton.Height,
-                _criarSubmenuOpen ? Color.SandyBrown : (ccHovered ? Color.Wheat : Color.White), 4f, drawShadow: false);
+                _createSubmenuOpen ? Color.SandyBrown : (ccHovered ? Color.Wheat : Color.White), 4f, drawShadow: false);
 
             Vector2 ccSz = Game1.smallFont.MeasureString(I18n.ButtonCreate);
             Utility.drawTextWithShadow(b, I18n.ButtonCreate, Game1.smallFont,
@@ -1191,20 +1175,20 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     }
 
 
-    private void DrawCriarSubmenu(SpriteBatch b)
+    private void DrawCreateSubmenu(SpriteBatch b)
     {
-        if (!_criarSubmenuOpen) return;
+        if (!_createSubmenuOpen) return;
 
         int mx = Game1.getMouseX(), my = Game1.getMouseY();
 
-        DrawCriarSubItem(b, _criarSubNewCategory, I18n.ButtonNewCategory, mx, my);
-        DrawCriarSubItem(b, _criarSubNewTag,      I18n.ButtonNewTag,      mx, my);
-        DrawCriarSubItem(b, _criarSubNewColorTag, I18n.ButtonNewColorTag, mx, my);
-        DrawCriarSubItem(b, _criarSubExportOrganization, I18n.ButtonExportOrganization, mx, my);
-        DrawCriarSubItem(b, _criarSubImportOrganization, I18n.ButtonImportOrganization, mx, my);
+        DrawCreateSubItem(b, _createSubNewCategory, I18n.ButtonNewCategory, mx, my);
+        DrawCreateSubItem(b, _createSubNewTag,      I18n.ButtonNewTag,      mx, my);
+        DrawCreateSubItem(b, _createSubNewColorTag, I18n.ButtonNewColorTag, mx, my);
+        DrawCreateSubItem(b, _createSubExportOrganization, I18n.ButtonExportOrganization, mx, my);
+        DrawCreateSubItem(b, _createSubImportOrganization, I18n.ButtonImportOrganization, mx, my);
     }
 
-    private void DrawCriarSubItem(SpriteBatch b, Rectangle bounds, string label, int mx, int my)
+    private void DrawCreateSubItem(SpriteBatch b, Rectangle bounds, string label, int mx, int my)
     {
         bool hovered = bounds.Contains(mx, my);
         drawTextureBox(b, Game1.mouseCursors, new Rectangle(432, 439, 9, 9),
@@ -1614,9 +1598,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private void DrawAssignMode(SpriteBatch b)
     {
-        // ── Left side: only the tab bar (no Criar Categoria) + search + grid ──
+        // Left side: only the tab bar (no Create Category) + search + grid
 
-        // Category tabs row (without Criar Categoria button)
+        // Category tabs row (without Create Category button)
         foreach (var (id, label, bounds) in _categoryTabs)
         {
             bool isDropdown = id == "__dropdown__";
@@ -1713,10 +1697,10 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             }
         }
 
-        // ── Right side: preview panel (without Equipar — Concluir is drawn separately) ──
+        // Right side: preview panel (without Equip — Done is drawn separately)
         DrawPreviewPanel(b, showEquipButton: false);
 
-        // ── I18n.ButtonDone in place of the Equipar button ──
+        // I18n.ButtonDone in place of the Equip button
         DrawMenuButton(b, _equipButton, I18n.ButtonDone);
     }
 
@@ -1756,9 +1740,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             Game1.textColor);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Input handlers
-    // ──────────────────────────────────────────────────────────────────────────
+    // Input handlers
 
     private void HandleModalClick(int x, int y)
     {
@@ -1855,7 +1837,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private void HandleAssignModeClick(int x, int y)
     {
-        // Concluir button
+        // Done button
         if (_equipButton.Contains(x, y))
         {
             if (_assignTagMode)
@@ -1976,7 +1958,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _renameOriginalOutfitName = null;
         _creatingCategory = false;
         _creatingTag = false;
-        _criarSubmenuOpen = false;
+        _createSubmenuOpen = false;
         _searchFocused = false;
         _namingFocused = true;
         _newItemName = string.Empty;
@@ -1992,7 +1974,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _savingCurrentOutfit = false;
         _creatingCategory = false;
         _creatingTag = false;
-        _criarSubmenuOpen = false;
+        _createSubmenuOpen = false;
         _searchFocused = false;
         _namingFocused = true;
         _newItemName = outfitName;
@@ -2199,9 +2181,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         Game1.playSound("newArtifact");
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Selection / equipping
-    // ──────────────────────────────────────────────────────────────────────────
+    // Selection / equipping
 
     private void SelectOutfit(string outfitName)
     {
@@ -2296,9 +2276,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         RefreshParentMenu();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Layout & utilities
-    // ──────────────────────────────────────────────────────────────────────────
+    // Layout & utilities
 
     private void UpdateLayout()
     {
@@ -2307,25 +2285,25 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         _closeButtonRect = new Rectangle(ox + width - 56, oy + 16, 40, 36);
 
-        // ── Row 1: save current style + "Criar" buttons — below title scroll
+        // Row 1: save current style + "Create" buttons — below title scroll
         int saveY = oy + 76;
         _saveCurrentStyleButton = new Rectangle(ox + Padding, saveY, 250, CategoryBarH);
 
-        int criarY = saveY + CategoryBarH + 6;
-        _createCategoryButton = new Rectangle(ox + Padding, criarY, 180, CategoryBarH);
-        _criarButton          = _createCategoryButton;
+        int createY = saveY + CategoryBarH + 6;
+        _createCategoryButton = new Rectangle(ox + Padding, createY, 180, CategoryBarH);
+        _createButton          = _createCategoryButton;
 
         // Submenu items drop over the content below. They are handled before underlying buttons.
         int subW = 260;
-        int subY = criarY + CategoryBarH + 10;
-        _criarSubNewCategory = new Rectangle(_criarButton.X, subY, subW, CategoryBarH);
-        _criarSubNewTag      = new Rectangle(_criarButton.X, subY + CategoryBarH + 4, subW, CategoryBarH);
-        _criarSubNewColorTag = new Rectangle(_criarButton.X, subY + (CategoryBarH + 4) * 2, subW, CategoryBarH);
-        _criarSubExportOrganization = new Rectangle(_criarButton.X, subY + (CategoryBarH + 4) * 3, subW, CategoryBarH);
-        _criarSubImportOrganization = new Rectangle(_criarButton.X, subY + (CategoryBarH + 4) * 4, subW, CategoryBarH);
+        int subY = createY + CategoryBarH + 10;
+        _createSubNewCategory = new Rectangle(_createButton.X, subY, subW, CategoryBarH);
+        _createSubNewTag      = new Rectangle(_createButton.X, subY + CategoryBarH + 4, subW, CategoryBarH);
+        _createSubNewColorTag = new Rectangle(_createButton.X, subY + (CategoryBarH + 4) * 2, subW, CategoryBarH);
+        _createSubExportOrganization = new Rectangle(_createButton.X, subY + (CategoryBarH + 4) * 3, subW, CategoryBarH);
+        _createSubImportOrganization = new Rectangle(_createButton.X, subY + (CategoryBarH + 4) * 4, subW, CategoryBarH);
 
-        // ── Row 2: category tabs + action buttons (Selecionar / Excluir Categoria)
-        int categoryBarY = criarY + CategoryBarH + 6;
+        // Row 2: category tabs + action buttons (Select / Delete Category)
+        int categoryBarY = createY + CategoryBarH + 6;
         _categoryBar = new Rectangle(ox + Padding, categoryBarY, width - PreviewPanelW - Padding * 3, CategoryBarH);
 
         // Side tab for advanced filters, placed on the left side of the window like vanilla tabs.
@@ -2343,7 +2321,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             ? Rectangle.Empty
             : new Rectangle(ox + Padding, searchY, width - PreviewPanelW - Padding * 3, SearchBarH);
 
-        // ── Grid — below search normally, or directly below the top controls when advanced filters are open.
+        // Grid — below search normally, or directly below the top controls when advanced filters are open.
         int gridY = _advancedPanel.IsOpen
             ? oy + 104
             : searchY + SearchBarH + 8;
@@ -2359,7 +2337,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _gridArea.Bottom - 48,
             40, 40);
 
-        // ── Right preview panel
+        // Right preview panel
         _previewPanel = new Rectangle(
             ox + width - PreviewPanelW - Padding,
             oy + Padding + 52,
@@ -2387,7 +2365,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         int pbY = pbBottom - PortraitBoxH;
         _portraitBox = new Rectangle(pbX, pbY, PortraitBoxW, PortraitBoxH);
 
-        // Modal buttons: Cancelar (left) — Confirmar (right)
+        // Modal buttons: Cancel (left) — Confirm (right)
         Rectangle modal = GetModalBounds();
         _modalTextBox       = GetModalTextBoxBounds();
         _modalCancelButton  = new Rectangle(modal.Center.X - 130, modal.Bottom - 68, 120, 48);
@@ -2476,7 +2454,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         // can make the assignment screen look empty.
         if (!(_assignMode || _assignTagMode))
         {
-            // ── Category filter ───────────────────────────────────────────────
+            // Category filter
             // When the advanced tab is open, it owns the category filter.
             // This makes the advanced view start from all outfits, then narrow down only by its own controls.
             string catId = _advancedPanel.IsOpen
@@ -2502,7 +2480,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             }
         }
 
-        // ── Tag AND filter ────────────────────────────────────────────────────
+        // Tag AND filter
         var requiredTagIds   = (!_assignMode && !_assignTagMode && _advancedPanel.IsOpen) ? _advancedPanel.FilterTagIds      : new HashSet<string>();
         var requiredColorIds = (!_assignMode && !_assignTagMode && _advancedPanel.IsOpen) ? _advancedPanel.FilterColorTagIds : new HashSet<string>();
 
@@ -2520,7 +2498,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                     _tags.FirstOrDefault(t => t.Id == tid)?.OutfitNames.Contains(o) ?? false));
         }
 
-        // ── Text search ───────────────────────────────────────────────────────
+        // Text search
         // While the advanced filter panel is open, the search bar is hidden — any
         // leftover text from before opening it should be ignored, not used to filter.
         if (!_advancedPanel.IsOpen && !string.IsNullOrWhiteSpace(_searchText))
@@ -2715,13 +2693,13 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         {
             Game1.activeClickableMenu = returnMenu;
         }
-        else if (_parentMenu is not null)
+        else if (_returnMenu is not null)
         {
             // Fallback: give Fashion Sense's outfits menu its normal Escape press.
             // In Fashion Sense this should return to the Hand Mirror / main menu
             // instead of leaving the player on the saved outfits list.
             ModEntry.SuppressNextAutoOpen = true;
-            Game1.activeClickableMenu = _parentMenu;
+            Game1.activeClickableMenu = _returnMenu;
             TryAskParentMenuToReturnToMainMenu();
         }
         else
@@ -2732,7 +2710,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private IClickableMenu? GetFashionSenseMainMenuFromParent()
     {
-        if (_parentMenu is null)
+        if (_returnMenu is null)
             return null;
 
         // Fashion Sense's outfits screen is opened from the Hand Mirror / main
@@ -2750,7 +2728,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         string[] likelyNames =
         {
-            "parentMenu", "_parentMenu", "ParentMenu",
+            "parentMenu", "_returnMenu", "ParentMenu",
             "previousMenu", "_previousMenu", "PreviousMenu",
             "sourceMenu", "_sourceMenu", "SourceMenu",
             "rootMenu", "_rootMenu", "RootMenu",
@@ -2759,20 +2737,20 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             "fashionSenseMenu", "_fashionSenseMenu", "FashionSenseMenu"
         };
 
-        Type parentType = _parentMenu.GetType();
+        Type parentType = _returnMenu.GetType();
 
         foreach (string name in likelyNames)
         {
             FieldInfo? field = parentType.GetField(name, flags);
-            if (field?.GetValue(_parentMenu) is IClickableMenu fieldMenu
-                && IsValidReturnMenu(fieldMenu, _parentMenu))
+            if (field?.GetValue(_returnMenu) is IClickableMenu fieldMenu
+                && IsValidReturnMenu(fieldMenu, _returnMenu))
             {
                 return fieldMenu;
             }
 
             PropertyInfo? property = parentType.GetProperty(name, flags);
-            if (property?.GetValue(_parentMenu) is IClickableMenu propertyMenu
-                && IsValidReturnMenu(propertyMenu, _parentMenu))
+            if (property?.GetValue(_returnMenu) is IClickableMenu propertyMenu
+                && IsValidReturnMenu(propertyMenu, _returnMenu))
             {
                 return propertyMenu;
             }
@@ -2783,8 +2761,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             if (!typeof(IClickableMenu).IsAssignableFrom(field.FieldType))
                 continue;
 
-            if (field.GetValue(_parentMenu) is IClickableMenu fieldMenu
-                && IsValidReturnMenu(fieldMenu, _parentMenu))
+            if (field.GetValue(_returnMenu) is IClickableMenu fieldMenu
+                && IsValidReturnMenu(fieldMenu, _returnMenu))
             {
                 return fieldMenu;
             }
@@ -2800,8 +2778,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
             try
             {
-                if (property.GetValue(_parentMenu) is IClickableMenu propertyMenu
-                    && IsValidReturnMenu(propertyMenu, _parentMenu))
+                if (property.GetValue(_returnMenu) is IClickableMenu propertyMenu
+                    && IsValidReturnMenu(propertyMenu, _returnMenu))
                 {
                     return propertyMenu;
                 }
@@ -2817,12 +2795,12 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private void TryAskParentMenuToReturnToMainMenu()
     {
-        if (_parentMenu is null)
+        if (_returnMenu is null)
             return;
 
         try
         {
-            _parentMenu.receiveKeyPress(Keys.Escape);
+            _returnMenu.receiveKeyPress(Keys.Escape);
         }
         catch
         {
@@ -2833,7 +2811,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private void RefreshParentMenu()
     {
-        if (_parentMenu is null)
+        if (_returnMenu is null)
             return;
 
         string[] methodNames =
@@ -2855,14 +2833,14 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         foreach (string methodName in methodNames)
         {
-            MethodInfo? method = _parentMenu.GetType().GetMethod(methodName, flags, null, Type.EmptyTypes, null);
+            MethodInfo? method = _returnMenu.GetType().GetMethod(methodName, flags, null, Type.EmptyTypes, null);
 
             if (method is null)
                 continue;
 
             try
             {
-                method.Invoke(_parentMenu, null);
+                method.Invoke(_returnMenu, null);
                 return;
             }
             catch
@@ -2881,9 +2859,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _textInputHooked = false;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Misc helpers
-    // ──────────────────────────────────────────────────────────────────────────
+    // Misc helpers
 
     private static int TurnLeft(int d) => d switch
     {

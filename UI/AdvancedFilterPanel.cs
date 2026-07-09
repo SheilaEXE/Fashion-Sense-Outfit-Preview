@@ -20,7 +20,7 @@ internal sealed class AdvancedFilterPanel
     private const int ItemH      = 34;
     private const int SectionGap = 6;
 
-    // ── Filter state (public for menu to query) ───────────────────────────────
+    // Filter state (public for menu to query)
     public bool   IsOpen           { get; set; } = false;
     public string FilterCategoryId { get; set; } = "all";
     public HashSet<string> FilterTagIds      { get; } = new();
@@ -38,7 +38,7 @@ internal sealed class AdvancedFilterPanel
         FilterColorTagIds.Clear();
     }
 
-    // ── Data ──────────────────────────────────────────────────────────────────
+    // Data
     private List<OutfitCategory> _categories = new();
     private List<OutfitTag>      _tags       = new();
 
@@ -49,7 +49,7 @@ internal sealed class AdvancedFilterPanel
         RebuildItems();
     }
 
-    // ── Items ─────────────────────────────────────────────────────────────────
+    // Items
     private record FilterItem(string Id, string Label, FilterItemKind Kind, int RelativeY);
     private enum FilterItemKind { Category, Tag, ColorTag, SectionHeader }
     private List<FilterItem> _items = new();
@@ -113,7 +113,7 @@ internal sealed class AdvancedFilterPanel
         return (overflow + ItemH - 1) / ItemH;   // ceiling division
     }
 
-    // ── Layout ────────────────────────────────────────────────────────────────
+    // Layout
     public void UpdateLayout(Rectangle gridArea)
     {
         _panelBounds = GetPanelBounds(gridArea);
@@ -128,7 +128,7 @@ internal sealed class AdvancedFilterPanel
     public static Rectangle GetPanelBounds(Rectangle gridArea)
         => new(gridArea.X, gridArea.Y, gridArea.Width, PanelHeight);
 
-    // ── Drawing (called by ExpandedOutfitsMenu above DrawGrid) ────────────────
+    // Drawing (called by ExpandedOutfitsMenu above DrawGrid)
     public void Draw(SpriteBatch b, Rectangle gridArea, Rectangle previewPanel)
     {
         UpdateLayout(gridArea);
@@ -216,7 +216,7 @@ internal sealed class AdvancedFilterPanel
         }
     }
 
-    // ── Input ─────────────────────────────────────────────────────────────────
+    // Input
 
     /// <summary>Returns true if click was consumed by the panel.</summary>
     public bool HandleClick(int x, int y, Rectangle gridArea)
@@ -347,7 +347,7 @@ internal sealed class AdvancedFilterPanel
         return new string(label.Where(c => !decorative.Contains(c)).ToArray()).Trim();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // Helpers
     private static string TruncateString(string s, Microsoft.Xna.Framework.Graphics.SpriteFont font, int maxW)
     {
         if (font.MeasureString(s).X <= maxW) return s;

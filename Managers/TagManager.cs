@@ -6,10 +6,6 @@ using System.Text.Json;
 
 namespace FashionSenseOutfitPreview;
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  Data models
-// ──────────────────────────────────────────────────────────────────────────────
-
 internal enum TagKind { General, Color }
 
 /// <summary>A tag that can be assigned to one or more outfits.</summary>
@@ -29,8 +25,6 @@ internal sealed class OutfitTag
 internal sealed class TagManager
 {
     private const string ModDataKey = "FashionSenseOutfitPreview.Tags";
-
-    // ── Public API ────────────────────────────────────────────────────────────
 
     public List<OutfitTag> LoadTags()
     {

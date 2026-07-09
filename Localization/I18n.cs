@@ -16,7 +16,7 @@ internal static class I18n
     private static string Get(string key) => _t.Get(key);
     private static string Get(string key, object tokens) => _t.Get(key, tokens);
 
-    // ── UI ────────────────────────────────────────────────────────────────────
+    // UI
     public static string Title                => Get("ui.title");
     public static string Preview              => Get("ui.preview");
     public static string SearchPlaceholder    => Get("ui.search.placeholder");
@@ -76,7 +76,7 @@ internal static class I18n
     public static string ErrorNameTaken       => Get("ui.error.name_taken");
     public static string ErrorPresetsUnsupported => Get("ui.error.presets_unsupported");
 
-    // ── Config ────────────────────────────────────────────────────────────────
+    // Config
     public static string ConfigShortcutName        => Get("config.shortcut.name");
     public static string ConfigShortcutTooltip     => Get("config.shortcut.tooltip");
     public static string ConfigExpandShortcutName  => Get("config.expand_shortcut.name");
@@ -84,7 +84,7 @@ internal static class I18n
     public static string ConfigExpandDefaultName    => Get("config.expand_default.name");
     public static string ConfigExpandDefaultTooltip => Get("config.expand_default.tooltip");
 
-    // ── Tags ──────────────────────────────────────────────────────────────────
+    // Tags
     public static string ButtonCreate         => Get("ui.button.create");
     public static string ButtonSaveCurrentStyle => Get("ui.button.save_current_style");
     public static string ButtonNewCategory    => Get("ui.button.new_category");
@@ -106,7 +106,7 @@ internal static class I18n
     public static string AssignTagInstruction(string tagName)
         => Get("ui.assign.tag_instruction", new { tagName });
 
-    // ── Advanced filter panel ─────────────────────────────────────────────────
+    // Advanced filter panel
     public static string ButtonAdvanced       => Get("ui.button.advanced");
     public static string ButtonClearFilters   => Get("ui.button.clear_filters");
     public static string SectionCategory      => Get("ui.section.category");
