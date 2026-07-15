@@ -47,6 +47,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private const int GridCellH       = 44;
     private const int PreviewPanelW   = 320;
     private const int OutfitNameMaxW  = 170;
+    private const int DropdownScrollbarW = 24;
+    private const int DropdownScreenMargin = 16;
 
     // Preview sprite box inside the right panel
     private const int PortraitBoxW    = 240;
@@ -121,6 +123,46 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private bool _dropdownOpen = false;
     private bool _tagDropdownOpen = false;
     private bool _colorDropdownOpen = false;
+    private int _categoryDropdownScroll = 0;
+    private int _tagDropdownScroll = 0;
+    private int _colorDropdownScroll = 0;
+    private DropdownKind _draggingDropdownScrollbar = DropdownKind.None;
+    private int _dropdownScrollbarDragOffsetY = 0;
+
+    private enum DropdownKind
+    {
+        None,
+        Category,
+        Tag,
+        Color
+    }
+
+    private readonly struct DropdownLayout
+    {
+        public Rectangle Bounds { get; }
+        public Rectangle ItemsBounds { get; }
+        public Rectangle ScrollTrack { get; }
+        public Rectangle ScrollThumb { get; }
+        public int VisibleRows { get; }
+        public int MaxScroll { get; }
+        public bool HasScrollbar => MaxScroll > 0;
+
+        public DropdownLayout(
+            Rectangle bounds,
+            Rectangle itemsBounds,
+            Rectangle scrollTrack,
+            Rectangle scrollThumb,
+            int visibleRows,
+            int maxScroll)
+        {
+            Bounds = bounds;
+            ItemsBounds = itemsBounds;
+            ScrollTrack = scrollTrack;
+            ScrollThumb = scrollThumb;
+            VisibleRows = visibleRows;
+            MaxScroll = maxScroll;
+        }
+    }
 
     // "Select mode" — player picks outfits to remove from active category
     private bool              _selectMode         = false;
@@ -446,6 +488,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         // The normal category/create controls are intentionally disabled while advanced filters are open.
         if (!_advancedPanel.IsOpen)
         {
+            if (HandleDropdownScrollbarPress(x, y))
+                return;
+
             // If dropdown is open, check for item clicks first
             if (_dropdownOpen)
             {
@@ -462,18 +507,25 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
                     if (_categories.Count > 0)
                     {
-                        int itemH  = CategoryBarH;
-                        int listW  = Math.Max(dropTab.Bounds.Width, 200);
-                        int listX  = dropTab.Bounds.X;
-                        int listY  = dropTab.Bounds.Bottom + 2;
+                        int itemCount = _categories.Count + 1;
+                        DropdownLayout layout = GetDropdownLayout(
+                            dropTab.Bounds,
+                            itemCount,
+                            200,
+                            _categoryDropdownScroll);
 
-                        for (int i = 0; i <= _categories.Count; i++)
+                        for (int row = 0; row < layout.VisibleRows; row++)
                         {
-                            Rectangle itemRect = new(listX + 4, listY + 4 + i * itemH, listW - 8, itemH);
+                            int itemIndex = _categoryDropdownScroll + row;
+                            Rectangle itemRect = new(
+                                layout.ItemsBounds.X,
+                                layout.ItemsBounds.Y + row * CategoryBarH,
+                                layout.ItemsBounds.Width,
+                                CategoryBarH);
                             if (!itemRect.Contains(x, y))
                                 continue;
 
-                            SelectCategoryFilter(i == 0 ? "all" : _categories[i - 1].Id);
+                            SelectCategoryFilter(itemIndex == 0 ? "all" : _categories[itemIndex - 1].Id);
                             return;
                         }
                     }
@@ -503,26 +555,34 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
                     if (availableTags.Count > 0)
                     {
-                        int itemH = CategoryBarH;
-                        int listW = Math.Max(dropTab.Bounds.Width, 230);
-                        int listX = dropTab.Bounds.X;
-                        int listY = dropTab.Bounds.Bottom + 2;
+                        DropdownKind kind = isColorDropdown ? DropdownKind.Color : DropdownKind.Tag;
+                        int scroll = GetDropdownScroll(kind);
+                        DropdownLayout layout = GetDropdownLayout(
+                            dropTab.Bounds,
+                            availableTags.Count,
+                            230,
+                            scroll);
 
-                        for (int i = 0; i < availableTags.Count; i++)
+                        for (int row = 0; row < layout.VisibleRows; row++)
                         {
-                            Rectangle itemRect = new(listX + 4, listY + 4 + i * itemH, listW - 8, itemH);
+                            int itemIndex = scroll + row;
+                            Rectangle itemRect = new(
+                                layout.ItemsBounds.X,
+                                layout.ItemsBounds.Y + row * CategoryBarH,
+                                layout.ItemsBounds.Width,
+                                CategoryBarH);
                             Rectangle deleteRect = GetTagDeleteButtonBounds(itemRect);
 
                             if (deleteRect.Contains(x, y))
                             {
-                                DeleteTagAndRefresh(availableTags[i].Id);
+                                DeleteTagAndRefresh(availableTags[itemIndex].Id);
                                 return;
                             }
 
                             if (!itemRect.Contains(x, y))
                                 continue;
 
-                            SelectTagFilter(availableTags[i].Id);
+                            SelectTagFilter(availableTags[itemIndex].Id);
                             return;
                         }
                     }
@@ -541,6 +601,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 if (id == "__dropdown__")
                 {
                     _dropdownOpen = !_dropdownOpen;
+                    if (_dropdownOpen)
+                        _categoryDropdownScroll = 0;
                     _tagDropdownOpen = false;
                     _colorDropdownOpen = false;
                     Game1.playSound("smallSelect");
@@ -550,6 +612,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 if (id == "__tag_dropdown__")
                 {
                     _tagDropdownOpen = !_tagDropdownOpen;
+                    if (_tagDropdownOpen)
+                        _tagDropdownScroll = 0;
                     _dropdownOpen = false;
                     _colorDropdownOpen = false;
                     Game1.playSound("smallSelect");
@@ -559,6 +623,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 if (id == "__color_dropdown__")
                 {
                     _colorDropdownOpen = !_colorDropdownOpen;
+                    if (_colorDropdownOpen)
+                        _colorDropdownScroll = 0;
                     _dropdownOpen = false;
                     _tagDropdownOpen = false;
                     Game1.playSound("smallSelect");
@@ -979,9 +1045,41 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     /// </summary>
     public override bool overrideSnappyMenuCursorMovementBan() => true;
 
+    public override void leftClickHeld(int x, int y)
+    {
+        if (_draggingDropdownScrollbar != DropdownKind.None
+            && TryGetDropdownLayout(_draggingDropdownScrollbar, out DropdownLayout layout))
+        {
+            SetDropdownScrollFromThumb(
+                _draggingDropdownScrollbar,
+                y - _dropdownScrollbarDragOffsetY,
+                layout);
+            return;
+        }
+
+        base.leftClickHeld(x, y);
+    }
+
+    public override void releaseLeftClick(int x, int y)
+    {
+        _draggingDropdownScrollbar = DropdownKind.None;
+        _dropdownScrollbarDragOffsetY = 0;
+        base.releaseLeftClick(x, y);
+    }
+
     public override void receiveScrollWheelAction(int direction)
     {
         int mx = Game1.getMouseX(), my = Game1.getMouseY();
+
+        if (TryGetOpenDropdownLayout(out DropdownKind dropdownKind, out DropdownLayout dropdownLayout)
+            && dropdownLayout.Bounds.Contains(mx, my))
+        {
+            SetDropdownScroll(
+                dropdownKind,
+                GetDropdownScroll(dropdownKind) + (direction > 0 ? -1 : 1),
+                dropdownLayout.MaxScroll);
+            return;
+        }
 
         if (_advancedPanel.IsOpen && !IsAssignmentModeActive && _advancedPanel.HandleScroll(direction, mx, my, _gridArea))
             return;
@@ -1223,6 +1321,198 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         return I18n.ButtonNone;
     }
 
+    private DropdownLayout GetDropdownLayout(
+        Rectangle dropdownButton,
+        int itemCount,
+        int minimumWidth,
+        int scrollOffset)
+    {
+        int listX = dropdownButton.X;
+        int listY = dropdownButton.Bottom + 2;
+        int listW = Math.Max(dropdownButton.Width, minimumWidth);
+        int availableHeight = Math.Max(
+            CategoryBarH + 8,
+            Game1.uiViewport.Height - listY - DropdownScreenMargin);
+        int visibleRows = Math.Clamp(
+            (availableHeight - 8) / CategoryBarH,
+            1,
+            Math.Max(1, itemCount));
+        int maxScroll = Math.Max(0, itemCount - visibleRows);
+        int clampedScroll = Math.Clamp(scrollOffset, 0, maxScroll);
+        int listH = visibleRows * CategoryBarH + 8;
+
+        Rectangle bounds = new(listX, listY, listW, listH);
+        int scrollbarSpace = maxScroll > 0 ? DropdownScrollbarW + 4 : 0;
+        Rectangle itemsBounds = new(
+            listX + 4,
+            listY + 4,
+            listW - 8 - scrollbarSpace,
+            visibleRows * CategoryBarH);
+
+        if (maxScroll == 0)
+            return new DropdownLayout(bounds, itemsBounds, Rectangle.Empty, Rectangle.Empty, visibleRows, maxScroll);
+
+        Rectangle track = new(
+            bounds.Right - DropdownScrollbarW,
+            bounds.Y + 8,
+            DropdownScrollbarW - 6,
+            bounds.Height - 16);
+        int thumbHeight = Math.Max(24, (int)Math.Round(track.Height * (visibleRows / (double)itemCount)));
+        thumbHeight = Math.Min(track.Height, thumbHeight);
+        int thumbTravel = Math.Max(0, track.Height - thumbHeight);
+        int thumbY = track.Y + (maxScroll == 0
+            ? 0
+            : (int)Math.Round(thumbTravel * (clampedScroll / (double)maxScroll)));
+        Rectangle thumb = new(track.X, thumbY, track.Width, thumbHeight);
+
+        return new DropdownLayout(bounds, itemsBounds, track, thumb, visibleRows, maxScroll);
+    }
+
+    private bool TryGetDropdownLayout(DropdownKind kind, out DropdownLayout layout)
+    {
+        string dropdownId;
+        int itemCount;
+        int minimumWidth;
+
+        switch (kind)
+        {
+            case DropdownKind.Category:
+                dropdownId = "__dropdown__";
+                itemCount = _categories.Count + 1;
+                minimumWidth = 200;
+                break;
+            case DropdownKind.Tag:
+                dropdownId = "__tag_dropdown__";
+                itemCount = _tags.Count(tag => tag.Kind == TagKind.General);
+                minimumWidth = 230;
+                break;
+            case DropdownKind.Color:
+                dropdownId = "__color_dropdown__";
+                itemCount = _tags.Count(tag => tag.Kind == TagKind.Color);
+                minimumWidth = 230;
+                break;
+            default:
+                layout = default;
+                return false;
+        }
+
+        var dropTab = _categoryTabs.FirstOrDefault(tab => tab.Id == dropdownId);
+        if (dropTab == default || itemCount <= 0)
+        {
+            layout = default;
+            return false;
+        }
+
+        layout = GetDropdownLayout(dropTab.Bounds, itemCount, minimumWidth, GetDropdownScroll(kind));
+        SetDropdownScroll(kind, GetDropdownScroll(kind), layout.MaxScroll);
+        return true;
+    }
+
+    private bool TryGetOpenDropdownLayout(out DropdownKind kind, out DropdownLayout layout)
+    {
+        kind = _dropdownOpen
+            ? DropdownKind.Category
+            : _tagDropdownOpen
+                ? DropdownKind.Tag
+                : _colorDropdownOpen
+                    ? DropdownKind.Color
+                    : DropdownKind.None;
+
+        return TryGetDropdownLayout(kind, out layout);
+    }
+
+    private int GetDropdownScroll(DropdownKind kind)
+    {
+        return kind switch
+        {
+            DropdownKind.Category => _categoryDropdownScroll,
+            DropdownKind.Tag => _tagDropdownScroll,
+            DropdownKind.Color => _colorDropdownScroll,
+            _ => 0
+        };
+    }
+
+    private void SetDropdownScroll(DropdownKind kind, int value, int maxScroll)
+    {
+        int clamped = Math.Clamp(value, 0, Math.Max(0, maxScroll));
+        switch (kind)
+        {
+            case DropdownKind.Category:
+                _categoryDropdownScroll = clamped;
+                break;
+            case DropdownKind.Tag:
+                _tagDropdownScroll = clamped;
+                break;
+            case DropdownKind.Color:
+                _colorDropdownScroll = clamped;
+                break;
+        }
+    }
+
+    private bool HandleDropdownScrollbarPress(int x, int y)
+    {
+        if (!TryGetOpenDropdownLayout(out DropdownKind kind, out DropdownLayout layout)
+            || !layout.HasScrollbar
+            || !layout.ScrollTrack.Contains(x, y))
+        {
+            return false;
+        }
+
+        if (layout.ScrollThumb.Contains(x, y))
+        {
+            _draggingDropdownScrollbar = kind;
+            _dropdownScrollbarDragOffsetY = y - layout.ScrollThumb.Y;
+        }
+        else
+        {
+            _draggingDropdownScrollbar = kind;
+            _dropdownScrollbarDragOffsetY = layout.ScrollThumb.Height / 2;
+            SetDropdownScrollFromThumb(kind, y - _dropdownScrollbarDragOffsetY, layout);
+        }
+
+        Game1.playSound("shiny4");
+        return true;
+    }
+
+    private void SetDropdownScrollFromThumb(DropdownKind kind, int thumbTop, DropdownLayout layout)
+    {
+        if (!layout.HasScrollbar)
+            return;
+
+        int travel = layout.ScrollTrack.Height - layout.ScrollThumb.Height;
+        if (travel <= 0)
+        {
+            SetDropdownScroll(kind, 0, layout.MaxScroll);
+            return;
+        }
+
+        int clampedTop = Math.Clamp(
+            thumbTop,
+            layout.ScrollTrack.Y,
+            layout.ScrollTrack.Bottom - layout.ScrollThumb.Height);
+        double ratio = (clampedTop - layout.ScrollTrack.Y) / (double)travel;
+        SetDropdownScroll(kind, (int)Math.Round(ratio * layout.MaxScroll), layout.MaxScroll);
+    }
+
+    private static void DrawDropdownScrollbar(SpriteBatch b, DropdownLayout layout)
+    {
+        if (!layout.HasScrollbar)
+            return;
+
+        b.Draw(Game1.staminaRect, layout.ScrollTrack, Color.SaddleBrown * 0.25f);
+        drawTextureBox(
+            b,
+            Game1.mouseCursors,
+            new Rectangle(432, 439, 9, 9),
+            layout.ScrollThumb.X,
+            layout.ScrollThumb.Y,
+            layout.ScrollThumb.Width,
+            layout.ScrollThumb.Height,
+            layout.ScrollThumb.Contains(Game1.getMouseX(), Game1.getMouseY()) ? Color.Wheat : Color.White,
+            2f,
+            drawShadow: false);
+    }
+
     /// <summary>
     /// Draw the category dropdown list on top of everything else so it overlaps the grid/searchbar.
     /// Must be called AFTER grid and search bar are drawn.
@@ -1248,29 +1538,35 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         if (dropTab == default)
             return;
 
-        int itemH  = CategoryBarH;
-        int listW  = Math.Max(dropTab.Bounds.Width, 200);
-        int listX  = dropTab.Bounds.X;
-        int listY  = dropTab.Bounds.Bottom + 2;
         int itemCount = _categories.Count + 1; // + "Nenhum" / "None"
-        int listH  = itemH * itemCount;
+        DropdownLayout layout = GetDropdownLayout(
+            dropTab.Bounds,
+            itemCount,
+            200,
+            _categoryDropdownScroll);
+        _categoryDropdownScroll = Math.Clamp(_categoryDropdownScroll, 0, layout.MaxScroll);
 
         b.Draw(Game1.staminaRect,
-            new Rectangle(listX, listY, listW, listH + 8),
+            layout.Bounds,
             Color.AntiqueWhite);
 
         drawTextureBox(b, Game1.mouseCursors,
             new Rectangle(384, 396, 15, 15),
-            listX, listY, listW, listH + 8,
+            layout.Bounds.X, layout.Bounds.Y, layout.Bounds.Width, layout.Bounds.Height,
             Color.White, 4f, drawShadow: true);
 
-        for (int i = 0; i < itemCount; i++)
+        for (int row = 0; row < layout.VisibleRows; row++)
         {
-            bool isNoneItem = i == 0;
-            string itemId   = isNoneItem ? "all" : _categories[i - 1].Id;
-            string itemName = isNoneItem ? NoneCategoryLabel() : _categories[i - 1].Name;
+            int itemIndex = _categoryDropdownScroll + row;
+            bool isNoneItem = itemIndex == 0;
+            string itemId   = isNoneItem ? "all" : _categories[itemIndex - 1].Id;
+            string itemName = isNoneItem ? NoneCategoryLabel() : _categories[itemIndex - 1].Name;
 
-            Rectangle itemRect  = new(listX + 4, listY + 4 + i * itemH, listW - 8, itemH);
+            Rectangle itemRect = new(
+                layout.ItemsBounds.X,
+                layout.ItemsBounds.Y + row * CategoryBarH,
+                layout.ItemsBounds.Width,
+                CategoryBarH);
             bool itemHovered    = itemRect.Contains(Game1.getMouseX(), Game1.getMouseY());
             bool itemActive     = itemId == _selectedCategoryId;
 
@@ -1284,6 +1580,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 new Vector2(itemRect.X + 10, itemRect.Center.Y - isz.Y / 2f),
                 itemActive ? Color.SaddleBrown : Game1.textColor);
         }
+
+        DrawDropdownScrollbar(b, layout);
     }
 
     private void DrawTagDropdownOverlay(SpriteBatch b, TagKind kind, string dropdownId)
@@ -1296,25 +1594,34 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         if (availableTags.Count == 0)
             return;
 
-        int itemH  = CategoryBarH;
-        int listW  = Math.Max(dropTab.Bounds.Width, 230);
-        int listX  = dropTab.Bounds.X;
-        int listY  = dropTab.Bounds.Bottom + 2;
-        int listH  = itemH * availableTags.Count;
+        DropdownKind dropdownKind = kind == TagKind.Color ? DropdownKind.Color : DropdownKind.Tag;
+        int scroll = GetDropdownScroll(dropdownKind);
+        DropdownLayout layout = GetDropdownLayout(
+            dropTab.Bounds,
+            availableTags.Count,
+            230,
+            scroll);
+        SetDropdownScroll(dropdownKind, scroll, layout.MaxScroll);
+        scroll = GetDropdownScroll(dropdownKind);
 
         b.Draw(Game1.staminaRect,
-            new Rectangle(listX, listY, listW, listH + 8),
+            layout.Bounds,
             Color.AntiqueWhite);
 
         drawTextureBox(b, Game1.mouseCursors,
             new Rectangle(384, 396, 15, 15),
-            listX, listY, listW, listH + 8,
+            layout.Bounds.X, layout.Bounds.Y, layout.Bounds.Width, layout.Bounds.Height,
             Color.White, 4f, drawShadow: true);
 
-        for (int i = 0; i < availableTags.Count; i++)
+        for (int row = 0; row < layout.VisibleRows; row++)
         {
-            OutfitTag tag = availableTags[i];
-            Rectangle itemRect = new(listX + 4, listY + 4 + i * itemH, listW - 8, itemH);
+            int itemIndex = scroll + row;
+            OutfitTag tag = availableTags[itemIndex];
+            Rectangle itemRect = new(
+                layout.ItemsBounds.X,
+                layout.ItemsBounds.Y + row * CategoryBarH,
+                layout.ItemsBounds.Width,
+                CategoryBarH);
             bool itemHovered = itemRect.Contains(Game1.getMouseX(), Game1.getMouseY());
 
             if (itemHovered)
@@ -1336,6 +1643,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
                 new Rectangle(323, 433, 9, 9),
                 Color.White);
         }
+
+        DrawDropdownScrollbar(b, layout);
     }
 
     private static Rectangle GetTagDeleteButtonBounds(Rectangle itemRect)
