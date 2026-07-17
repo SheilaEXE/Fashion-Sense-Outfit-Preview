@@ -73,7 +73,7 @@
   "ui.confirm.delete_saved_outfits.title": "Delete Outfits",
   "ui.confirm.delete_saved_outfits.msg": "Delete {{count}} saved outfit(s)?\nThis cannot be undone.",
   "ui.schedule.title": "Outfit schedule: {{section}}",
-  "ui.schedule.rule_number": "Rule {{number}}",
+  "ui.schedule.rule_number": "Schedule {{number}}",
   "ui.schedule.day_number": "Day {{day}}",
   "ui.schedule.spring": "Spring",
   "ui.schedule.summer": "Summer",
@@ -81,7 +81,7 @@
   "ui.schedule.winter": "Winter",
   "ui.schedule.festivals": "Festivals",
   "ui.schedule.daily": "Daily",
-  "ui.schedule.add_rule": "+ New Rule",
+  "ui.schedule.add_rule": "New schedule",
   "ui.schedule.empty": "No rules yet.",
   "ui.schedule.enabled": "Enabled",
   "ui.schedule.disabled": "Disabled",
@@ -152,6 +152,8 @@
   "ui.schedule.exact_times": "Exact times (optional)",
   "ui.schedule.add_time": "Add",
   "ui.schedule.select_outfits": "Select outfits",
-  "ui.schedule.no_outfits": "No outfits selected",
-  "ui.schedule.outfits_short": "outfit(s)"
+  "ui.schedule.no_outfits": "No outfits or tags selected",
+  "ui.schedule.outfits_short": "outfit(s)",
+  "ui.schedule.tags_short": "tag(s)",
+  "ui.schedule.whole_tag": "Whole tag"
 }

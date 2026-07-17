@@ -10,13 +10,15 @@ namespace FashionSenseOutfitPreview;
 internal sealed class ScheduleEvaluator
 {
     private readonly ScheduleManager _manager;
+    private readonly TagManager _tagManager;
     private readonly OutfitPreviewRenderer _renderer;
     private readonly IMonitor _monitor;
     private readonly Random _random = new();
 
-    public ScheduleEvaluator(ScheduleManager manager, OutfitPreviewRenderer renderer, IMonitor monitor)
+    public ScheduleEvaluator(ScheduleManager manager, TagManager tagManager, OutfitPreviewRenderer renderer, IMonitor monitor)
     {
         _manager = manager;
+        _tagManager = tagManager;
         _renderer = renderer;
         _monitor = monitor;
     }
@@ -35,7 +37,15 @@ internal sealed class ScheduleEvaluator
         if (selectedRule is null)
             return true;
 
-        List<string> available = selectedRule.OutfitNames
+        HashSet<string> selectedOutfits = new(selectedRule.OutfitNames, StringComparer.OrdinalIgnoreCase);
+        if (selectedRule.TagIds.Count > 0)
+        {
+            HashSet<string> selectedTagIds = new(selectedRule.TagIds, StringComparer.OrdinalIgnoreCase);
+            foreach (OutfitTag tag in _tagManager.LoadTags().Where(tag => selectedTagIds.Contains(tag.Id)))
+                selectedOutfits.UnionWith(tag.OutfitNames);
+        }
+
+        List<string> available = selectedOutfits
             .Where(_renderer.OutfitExists)
             .ToList();
 
@@ -54,7 +64,7 @@ internal sealed class ScheduleEvaluator
 
     private static bool Matches(OutfitScheduleRule rule, bool exactTimeTrigger)
     {
-        if (!rule.Enabled || rule.OutfitNames.Count == 0)
+        if (!rule.Enabled || (rule.OutfitNames.Count == 0 && rule.TagIds.Count == 0))
             return false;
 
         bool festivalRule = rule.Section == ScheduleSection.Festivals;

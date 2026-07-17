@@ -21,6 +21,7 @@ internal sealed class SchedulePanel
     private readonly ScheduleManager _manager;
     private readonly ScheduleConditionCatalog _conditionCatalog;
     private List<OutfitScheduleRule> _rules;
+    private List<OutfitTag> _tags;
     private readonly Dictionary<ScheduleSection, Rectangle> _sideTabs = new();
     private readonly Dictionary<string, Rectangle> _ruleCards = new();
     private readonly Dictionary<int, Rectangle> _dayButtons = new();
@@ -98,10 +99,14 @@ internal sealed class SchedulePanel
         ? I18n.Title
         : I18n.ScheduleTitle(SectionLabel(ActiveSection.Value));
 
-    public SchedulePanel(ScheduleManager manager, ScheduleConditionCatalog conditionCatalog)
+    public SchedulePanel(
+        ScheduleManager manager,
+        ScheduleConditionCatalog conditionCatalog,
+        IEnumerable<OutfitTag> tags)
     {
         _manager = manager;
         _conditionCatalog = conditionCatalog;
+        _tags = tags.ToList();
         _rules = manager.LoadRules();
         bool normalizedRules = false;
         foreach (OutfitScheduleRule rule in _rules)
@@ -148,7 +153,12 @@ internal sealed class SchedulePanel
             _contentArea.Y,
             _contentArea.Right - _ruleListArea.Right - 16,
             _contentArea.Height);
-        _addButton = new Rectangle(_ruleListArea.X + 12, _ruleListArea.Y + 16, _ruleListArea.Width - 24, 44);
+        int addButtonWidth = Math.Min(240, _ruleListArea.Width - 24);
+        _addButton = new Rectangle(
+            _ruleListArea.Center.X - addButtonWidth / 2,
+            _ruleListArea.Y + 16,
+            addButtonWidth,
+            44);
     }
 
     public void DrawSideTabs(SpriteBatch b)
@@ -502,13 +512,30 @@ internal sealed class SchedulePanel
         return rule is not null;
     }
 
-    public void SetSelectedOutfits(string ruleId, IEnumerable<string> outfitNames)
+    public void SetSelectedOutfits(
+        string ruleId,
+        IEnumerable<string> outfitNames,
+        IEnumerable<string> tagIds)
     {
         OutfitScheduleRule? rule = _rules.FirstOrDefault(candidate => candidate.Id == ruleId);
         if (rule is null)
             return;
 
         rule.OutfitNames = outfitNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        rule.TagIds = tagIds.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        Save();
+    }
+
+    public void SetTags(IEnumerable<OutfitTag> tags)
+    {
+        _tags = tags.ToList();
+    }
+
+    public void RemoveTag(string tagId)
+    {
+        foreach (OutfitScheduleRule rule in _rules)
+            rule.TagIds.RemoveAll(id => id.Equals(tagId, StringComparison.OrdinalIgnoreCase));
+
         Save();
     }
 
@@ -573,7 +600,10 @@ internal sealed class SchedulePanel
             string scheduleSummary = rule.Section == ScheduleSection.Festivals
                 ? FestivalSummary(rule)
                 : $"{DaySummary(rule)}  |  {WeatherSummary(rule)}";
-            string summary = $"{scheduleSummary}  |  {rule.OutfitNames.Count} {I18n.ScheduleOutfitsShort}";
+            string sourceSummary = $"{rule.OutfitNames.Count} {I18n.ScheduleOutfitsShort}";
+            if (rule.TagIds.Count > 0)
+                sourceSummary += $"  |  {rule.TagIds.Count} {I18n.ScheduleTagsShort}";
+            string summary = $"{scheduleSummary}  |  {sourceSummary}";
             Utility.drawTextWithShadow(b, Truncate(summary, card.Width - 20), Game1.smallFont,
                 new Vector2(card.X + 10, card.Y + 34), Color.Gray);
             y += 72;
@@ -624,9 +654,11 @@ internal sealed class SchedulePanel
         _editorViewport = new Rectangle(editor.X + 12, editor.Y + 10, editor.Width - 44, editor.Height - 20);
         _editorScrollTrack = new Rectangle(editor.Right - 24, _editorViewport.Y, 12, _editorViewport.Height);
 
-        string outfits = rule.OutfitNames.Count == 0
+        List<string> selectedSources = new(rule.OutfitNames);
+        selectedSources.AddRange(rule.TagIds.Select(TagDisplayName));
+        string outfits = selectedSources.Count == 0
             ? I18n.ScheduleNoOutfits
-            : string.Join(", ", rule.OutfitNames);
+            : string.Join(", ", selectedSources);
         List<string> outfitLines = WrapText(outfits, _editorViewport.Width - 16);
         int chipWidth = 128;
         int chipGap = 8;
@@ -746,7 +778,7 @@ internal sealed class SchedulePanel
         DrawEditorButton(b, _selectOutfitsButton, I18n.ScheduleSelectOutfits, Color.Plum);
         y += 54;
 
-        Color outfitColor = rule.OutfitNames.Count == 0 ? Color.Gray : Game1.textColor;
+        Color outfitColor = selectedSources.Count == 0 ? Color.Gray : Game1.textColor;
         foreach (string line in outfitLines)
         {
             DrawEditorText(b, line, new Vector2(x, y), outfitColor);
@@ -769,6 +801,13 @@ internal sealed class SchedulePanel
         {
             _editorScrollThumb = Rectangle.Empty;
         }
+    }
+
+    private string TagDisplayName(string tagId)
+    {
+        OutfitTag? tag = _tags.FirstOrDefault(candidate =>
+            candidate.Id.Equals(tagId, StringComparison.OrdinalIgnoreCase));
+        return tag is null ? $"#{tagId}" : $"#{tag.Name}";
     }
 
     private void OpenConditionPicker(ConditionPickerKind kind, OutfitScheduleRule rule)

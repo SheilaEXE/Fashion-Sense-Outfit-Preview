@@ -125,6 +125,8 @@ internal sealed class ScheduleManager
             .Select(name => name.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+        rule.TagIds ??= new();
+        rule.TagIds = NormalizeIds(rule.TagIds);
     }
 
     private static List<string> NormalizeIds(IEnumerable<string> ids)

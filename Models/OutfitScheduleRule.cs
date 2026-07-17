@@ -64,4 +64,5 @@ internal sealed class OutfitScheduleRule
     public List<string> LocationIds { get; set; } = new();
     public List<string> FestivalIds { get; set; } = new();
     public List<string> OutfitNames { get; set; } = new();
+    public List<string> TagIds { get; set; } = new();
 }

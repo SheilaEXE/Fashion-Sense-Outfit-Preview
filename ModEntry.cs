@@ -74,7 +74,7 @@ internal sealed class ModEntry : Mod
         _organizationManager = new GlobalOrganizationManager(helper.Data);
         _scheduleConditionCatalog = new ScheduleConditionCatalog(helper.ModRegistry);
         _renderer = new OutfitPreviewRenderer(Monitor);
-        _scheduleEvaluator = new ScheduleEvaluator(_scheduleManager, _renderer, Monitor);
+        _scheduleEvaluator = new ScheduleEvaluator(_scheduleManager, _tagManager, _renderer, Monitor);
         I18n.Init(helper.Translation);
 
         helper.Events.GameLoop.GameLaunched    += OnGameLaunched;

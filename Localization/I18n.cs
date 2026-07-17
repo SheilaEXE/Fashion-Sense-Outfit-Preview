@@ -196,4 +196,6 @@ internal static class I18n
     public static string ScheduleSelectOutfits => Get("ui.schedule.select_outfits");
     public static string ScheduleNoOutfits    => Get("ui.schedule.no_outfits");
     public static string ScheduleOutfitsShort => Get("ui.schedule.outfits_short");
+    public static string ScheduleTagsShort    => Get("ui.schedule.tags_short");
+    public static string ScheduleWholeTag     => Get("ui.schedule.whole_tag");
 }
