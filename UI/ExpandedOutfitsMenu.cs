@@ -2926,7 +2926,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         // When a category/tag/color is active, show only that active selector plus Edit/Delete.
         // The other selectors stay hidden to avoid mixing editing modes.
-        if (IsCustomCategorySelected)
+        if (!_scheduleOutfitSelectionMode && IsCustomCategorySelected)
         {
             string dropLabel = _categories.FirstOrDefault(c => c.Id == _selectedCategoryId)?.Name ?? I18n.ButtonCategory;
             int dropW = Math.Min(220, Math.Max(132, (int)Game1.smallFont.MeasureString(dropLabel).X + 32));
@@ -2935,7 +2935,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return;
         }
 
-        if (selectedTag is not null)
+        if (!_scheduleOutfitSelectionMode && selectedTag is not null)
         {
             string dropdownId = selectedTag.Kind == TagKind.Color ? "__color_dropdown__" : "__tag_dropdown__";
             int minW = selectedTag.Kind == TagKind.Color ? 100 : 90;
@@ -2948,25 +2948,34 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         // Main/all view: show all selectors.
         if (_categories.Count > 0)
         {
-            string dropLabel = I18n.ButtonCategory;
-            int dropW = Math.Max(132, (int)Game1.smallFont.MeasureString(dropLabel).X + 32);
-            _categoryTabs.Add(("__dropdown__", dropLabel, new Rectangle(tabX, tabY, dropW, CategoryBarH)));
+            string dropLabel = _scheduleOutfitSelectionMode && IsCustomCategorySelected
+                ? _categories.FirstOrDefault(c => c.Id == _selectedCategoryId)?.Name ?? I18n.ButtonCategory
+                : I18n.ButtonCategory;
+            int dropW = Math.Min(220, Math.Max(132, (int)Game1.smallFont.MeasureString(dropLabel).X + 32));
+            string shownDropLabel = TruncateString(dropLabel, Game1.smallFont, dropW - 24);
+            _categoryTabs.Add(("__dropdown__", shownDropLabel, new Rectangle(tabX, tabY, dropW, CategoryBarH)));
             tabX += dropW + 6;
         }
 
         if (_tags.Any(t => t.Kind == TagKind.General))
         {
-            string tagLabel = I18n.ButtonTags;
-            int tagW = Math.Max(90, (int)Game1.smallFont.MeasureString(tagLabel).X + 28);
-            _categoryTabs.Add(("__tag_dropdown__", tagLabel, new Rectangle(tabX, tabY, tagW, CategoryBarH)));
+            string tagLabel = _scheduleOutfitSelectionMode && selectedTag?.Kind == TagKind.General
+                ? selectedTag.Name
+                : I18n.ButtonTags;
+            int tagW = Math.Min(220, Math.Max(90, (int)Game1.smallFont.MeasureString(tagLabel).X + 28));
+            string shownTagLabel = TruncateString(tagLabel, Game1.smallFont, tagW - 20);
+            _categoryTabs.Add(("__tag_dropdown__", shownTagLabel, new Rectangle(tabX, tabY, tagW, CategoryBarH)));
             tabX += tagW + 6;
         }
 
         if (_tags.Any(t => t.Kind == TagKind.Color))
         {
-            string colorLabel = I18n.ButtonColors;
-            int colorW = Math.Max(100, (int)Game1.smallFont.MeasureString(colorLabel).X + 28);
-            _categoryTabs.Add(("__color_dropdown__", colorLabel, new Rectangle(tabX, tabY, colorW, CategoryBarH)));
+            string colorLabel = _scheduleOutfitSelectionMode && selectedTag?.Kind == TagKind.Color
+                ? selectedTag.Name
+                : I18n.ButtonColors;
+            int colorW = Math.Min(220, Math.Max(100, (int)Game1.smallFont.MeasureString(colorLabel).X + 28));
+            string shownColorLabel = TruncateString(colorLabel, Game1.smallFont, colorW - 20);
+            _categoryTabs.Add(("__color_dropdown__", shownColorLabel, new Rectangle(tabX, tabY, colorW, CategoryBarH)));
         }
     }
 
