@@ -28,12 +28,8 @@ internal sealed class ScheduleEvaluator
         if (!Context.IsWorldReady || Game1.eventUp || Game1.player?.currentLocation is null)
             return false;
 
-        List<OutfitScheduleRule> matching = _manager.LoadRules()
-            .Where(rule => Matches(rule, exactTimeTrigger))
-            .OrderByDescending(GetPriority)
-            .ToList();
-
-        OutfitScheduleRule? selectedRule = matching.FirstOrDefault();
+        List<OutfitScheduleRule> rules = _manager.LoadRules();
+        OutfitScheduleRule? selectedRule = FindWinningRule(rules, exactTimeTrigger);
         if (selectedRule is null)
             return true;
 
@@ -52,15 +48,47 @@ internal sealed class ScheduleEvaluator
         if (available.Count == 0)
             return false;
 
-        string outfitName = available[_random.Next(available.Count)];
+        List<string> choices = available.Count > 1 && !string.IsNullOrWhiteSpace(selectedRule.LastOutfitName)
+            ? available.Where(name => !name.Equals(selectedRule.LastOutfitName, StringComparison.OrdinalIgnoreCase)).ToList()
+            : available;
+        if (choices.Count == 0)
+            choices = available;
+
+        string outfitName = choices[_random.Next(choices.Count)];
         if (_renderer.EquipOutfitImmediately(outfitName))
         {
+            selectedRule.LastOutfitName = outfitName;
+            _manager.SaveRules(rules);
             _monitor.Log($"Schedule equipped Fashion Sense outfit '{outfitName}'.", LogLevel.Trace);
             return true;
         }
 
         return false;
     }
+
+    public string? GetWinningRuleId(IEnumerable<OutfitScheduleRule> rules)
+    {
+        if (!Context.IsWorldReady || Game1.eventUp || Game1.player?.currentLocation is null)
+            return null;
+
+        return FindWinningRule(rules, exactTimeTrigger: false)?.Id;
+    }
+
+    public bool IsRuleMatchingNow(OutfitScheduleRule rule)
+    {
+        if (!Context.IsWorldReady || Game1.eventUp || Game1.player?.currentLocation is null)
+            return false;
+
+        return Matches(rule, exactTimeTrigger: false);
+    }
+
+    private static OutfitScheduleRule? FindWinningRule(
+        IEnumerable<OutfitScheduleRule> rules,
+        bool exactTimeTrigger)
+        => rules
+            .Where(rule => Matches(rule, exactTimeTrigger))
+            .OrderByDescending(GetPriority)
+            .FirstOrDefault();
 
     private static bool Matches(OutfitScheduleRule rule, bool exactTimeTrigger)
     {

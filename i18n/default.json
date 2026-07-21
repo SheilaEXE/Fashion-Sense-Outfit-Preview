@@ -155,5 +155,9 @@
   "ui.schedule.no_outfits": "No outfits or tags selected",
   "ui.schedule.outfits_short": "outfit(s)",
   "ui.schedule.tags_short": "tag(s)",
-  "ui.schedule.whole_tag": "Whole tag"
+  "ui.schedule.whole_tag": "Whole tag",
+  "ui.schedule.name_optional": "Name (optional)",
+  "ui.schedule.name_title": "Schedule name",
+  "ui.schedule.active_now": "Active now",
+  "ui.schedule.waiting": "Waiting"
 }

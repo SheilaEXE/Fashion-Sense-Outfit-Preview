@@ -153,6 +153,10 @@
   "ui.schedule.outfits_short": "visual(is)",
   "ui.schedule.tags_short": "tag(s)",
   "ui.schedule.whole_tag": "Tag inteira",
+  "ui.schedule.name_optional": "Nome (opcional)",
+  "ui.schedule.name_title": "Nome do cronograma",
+  "ui.schedule.active_now": "Ativo agora",
+  "ui.schedule.waiting": "Em espera",
   "ui.button.delete_outfits": "Excluir",
   "ui.confirm.delete_saved_outfits.title": "Excluir Outfits",
   "ui.confirm.delete_saved_outfits.msg": "Excluir {{count}} outfit(s) salvo(s)?\nIsso não pode ser desfeito."

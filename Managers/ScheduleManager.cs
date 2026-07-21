@@ -54,6 +54,12 @@ internal sealed class ScheduleManager
                 rule.OutfitNames[i] = newName;
                 changed = true;
             }
+
+            if (rule.LastOutfitName.Equals(oldName, StringComparison.OrdinalIgnoreCase))
+            {
+                rule.LastOutfitName = newName;
+                changed = true;
+            }
         }
 
         if (changed)
@@ -67,7 +73,14 @@ internal sealed class ScheduleManager
         bool changed = false;
 
         foreach (OutfitScheduleRule rule in rules)
+        {
             changed |= rule.OutfitNames.RemoveAll(removed.Contains) > 0;
+            if (removed.Contains(rule.LastOutfitName))
+            {
+                rule.LastOutfitName = string.Empty;
+                changed = true;
+            }
+        }
 
         if (changed)
             SaveRules(rules);
@@ -76,6 +89,10 @@ internal sealed class ScheduleManager
     private static void Normalize(OutfitScheduleRule rule)
     {
         rule.Id = string.IsNullOrWhiteSpace(rule.Id) ? Guid.NewGuid().ToString("N") : rule.Id;
+        rule.Name = (rule.Name ?? string.Empty).Trim();
+        if (rule.Name.Length > 32)
+            rule.Name = rule.Name[..32];
+        rule.LastOutfitName = (rule.LastOutfitName ?? string.Empty).Trim();
         rule.SingleDay = Math.Clamp(rule.SingleDay, 1, 28);
         rule.Days = rule.Days
             .Where(day => day is >= 1 and <= 28)

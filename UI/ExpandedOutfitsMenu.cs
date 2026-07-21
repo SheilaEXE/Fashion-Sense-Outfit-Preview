@@ -102,10 +102,13 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     private bool     _creatingTag         = false;
     private bool     _savingCurrentOutfit = false;
     private bool     _renamingOutfit      = false;
+    private bool     _renamingSchedule    = false;
     private string?  _renameOriginalOutfitName = null;
+    private string?  _scheduleRenameRuleId = null;
     private TagKind  _creatingTagKind  = TagKind.General;
     private string   _newItemName      = string.Empty;
     private bool     _namingFocused    = false;
+    private bool IsNamingModalOpen => _creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit || _renamingSchedule;
 
     // Right-click outfit context menu
     private bool      _renameContextMenuOpen = false;
@@ -235,6 +238,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         TagManager            tagManager,
         GlobalOrganizationManager organizationManager,
         ScheduleManager       scheduleManager,
+        ScheduleEvaluator     scheduleEvaluator,
         ScheduleConditionCatalog scheduleConditionCatalog,
         OutfitPreviewRenderer renderer,
         IReadOnlyList<string> allOutfitNames,
@@ -255,7 +259,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         _categories = _categoryManager.LoadCategories();
         _tags       = _tagManager.LoadTags();
-        _schedulePanel = new SchedulePanel(scheduleManager, scheduleConditionCatalog, _tags);
+        _schedulePanel = new SchedulePanel(scheduleManager, scheduleEvaluator, scheduleConditionCatalog, _tags);
 
         _selectedOutfit = GetCurrentOutfitName();
 
@@ -292,7 +296,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _scrollOffset = 0;
             RebuildVisibleOutfits();
         }
-        else if (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit))
+        else if (_namingFocused && IsNamingModalOpen)
         {
             if (_newItemName.Length < 32)
                 _newItemName += ch;
@@ -302,7 +306,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     // Public API
 
     /// <summary>True when any text field in the menu is actively focused for input.</summary>
-    public bool IsTypingFocused => _searchFocused || (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit));
+    public bool IsTypingFocused => _searchFocused || (_namingFocused && IsNamingModalOpen);
 
     private OutfitTag? SelectedTag => _selectedTagId is null
         ? null
@@ -375,7 +379,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         // Native Stardew Valley close button.
         upperRightCloseButton?.draw(b);
 
-        if (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit)
+        if (IsNamingModalOpen)
         {
             DrawCreationModal(b);
         }
@@ -443,7 +447,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             return;
         }
 
-        if (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit)
+        if (IsNamingModalOpen)
         {
             HandleModalClick(x, y);
             return;
@@ -488,6 +492,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             {
                 if (_schedulePanel.TryBeginOutfitSelection(out OutfitScheduleRule? rule) && rule is not null)
                     BeginScheduleOutfitSelection(rule);
+                else if (_schedulePanel.TryBeginNameEdit(out OutfitScheduleRule? nameRule) && nameRule is not null)
+                    StartRenamingSchedule(nameRule);
                 return;
             }
         }
@@ -1098,7 +1104,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     public override void receiveRightClick(int x, int y, bool playSound = true)
     {
-        if (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit
+        if (IsNamingModalOpen
             || _confirmDeleteOutfits || _confirmDeleteSavedOutfits || _confirmDeleteCategory || _confirmDeleteTag
             || _assignMode || _assignTagMode || _advancedPanel.IsOpen)
             return;
@@ -1128,7 +1134,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
     {
         // While any text field is focused, eat the keystroke so the game
         // never sees it (prevents chat, journal, etc. from opening).
-        if (_searchFocused || (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit)))
+        if (_searchFocused || (_namingFocused && IsNamingModalOpen))
         {
             // Let Escape and Enter through to our handlers but nothing else
             // should reach the game's global shortcut system.
@@ -1279,7 +1285,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         bool backspaceDown = Keyboard.GetState().IsKeyDown(Keys.Back);
 
-        if (backspaceDown && (_searchFocused || (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit))))
+        if (backspaceDown && (_searchFocused || (_namingFocused && IsNamingModalOpen)))
         {
             if (!_backspaceWasDown)
             {
@@ -1320,7 +1326,7 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _scrollOffset = 0;
             RebuildVisibleOutfits();
         }
-        else if (_namingFocused && (_creatingCategory || _creatingTag || _savingCurrentOutfit || _renamingOutfit) && _newItemName.Length > 0)
+        else if (_namingFocused && IsNamingModalOpen && _newItemName.Length > 0)
         {
             _newItemName = _newItemName[..^1];
         }
@@ -2096,7 +2102,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             modal.X, modal.Y, modal.Width, modal.Height,
             Color.White, 4f, drawShadow: true);
 
-        string title = _renamingOutfit ? I18n.ModalRenameOutfit
+        string title = _renamingSchedule ? I18n.ScheduleNameTitle
+            : _renamingOutfit ? I18n.ModalRenameOutfit
             : _savingCurrentOutfit ? I18n.ModalSaveCurrentStyle
             : _creatingCategory ? I18n.ModalNewCategory
             : _creatingTagKind == TagKind.Color ? I18n.ModalNewColorTag
@@ -2287,7 +2294,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _creatingTag         = false;
             _savingCurrentOutfit = false;
             _renamingOutfit      = false;
+            _renamingSchedule    = false;
             _renameOriginalOutfitName = null;
+            _scheduleRenameRuleId = null;
             _newItemName         = string.Empty;
             _namingFocused       = false;
             Game1.playSound("smallSelect");
@@ -2455,7 +2464,9 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
             _creatingTag         = false;
             _savingCurrentOutfit = false;
             _renamingOutfit      = false;
+            _renamingSchedule    = false;
             _renameOriginalOutfitName = null;
+            _scheduleRenameRuleId = null;
             _newItemName         = string.Empty;
             _namingFocused       = false;
             return;
@@ -2478,6 +2489,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
         _savingCurrentOutfit = true;
         _renamingOutfit = false;
+        _renamingSchedule = false;
+        _scheduleRenameRuleId = null;
         _renameOriginalOutfitName = null;
         _creatingCategory = false;
         _creatingTag = false;
@@ -2493,6 +2506,8 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _renameContextMenuOpen = false;
         _contextOutfitName = null;
         _renamingOutfit = true;
+        _renamingSchedule = false;
+        _scheduleRenameRuleId = null;
         _renameOriginalOutfitName = outfitName;
         _savingCurrentOutfit = false;
         _creatingCategory = false;
@@ -2501,6 +2516,22 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
         _searchFocused = false;
         _namingFocused = true;
         _newItemName = outfitName;
+        Game1.playSound("smallSelect");
+    }
+
+    private void StartRenamingSchedule(OutfitScheduleRule rule)
+    {
+        _renamingSchedule = true;
+        _scheduleRenameRuleId = rule.Id;
+        _renamingOutfit = false;
+        _renameOriginalOutfitName = null;
+        _savingCurrentOutfit = false;
+        _creatingCategory = false;
+        _creatingTag = false;
+        _createSubmenuOpen = false;
+        _searchFocused = false;
+        _namingFocused = true;
+        _newItemName = rule.Name;
         Game1.playSound("smallSelect");
     }
 
@@ -2633,6 +2664,19 @@ internal sealed class ExpandedOutfitsMenu : IClickableMenu
 
     private void ConfirmCreation()
     {
+        if (_renamingSchedule)
+        {
+            if (_scheduleRenameRuleId is not null)
+                _schedulePanel.SetRuleName(_scheduleRenameRuleId, _newItemName);
+
+            _renamingSchedule = false;
+            _scheduleRenameRuleId = null;
+            _newItemName = string.Empty;
+            _namingFocused = false;
+            Game1.playSound("newArtifact");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_newItemName))
         {
             Game1.addHUDMessage(new HUDMessage(

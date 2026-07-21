@@ -19,6 +19,7 @@ internal sealed class SchedulePanel
     private static readonly Rectangle RightArrowSource = new(365, 495, 12, 11);
 
     private readonly ScheduleManager _manager;
+    private readonly ScheduleEvaluator _evaluator;
     private readonly ScheduleConditionCatalog _conditionCatalog;
     private List<OutfitScheduleRule> _rules;
     private List<OutfitTag> _tags;
@@ -39,6 +40,7 @@ internal sealed class SchedulePanel
     private Rectangle _editorScrollThumb;
     private Rectangle _addButton;
     private Rectangle _enabledButton;
+    private Rectangle _nameButton;
     private Rectangle _dayModeButton;
     private Rectangle _singleDayDownButton;
     private Rectangle _singleDayUpButton;
@@ -92,6 +94,7 @@ internal sealed class SchedulePanel
     private const double TimeHoldRepeatMs = 70;
     private string? _selectedRuleId;
     private string? _outfitSelectionRuleId;
+    private string? _nameEditRuleId;
 
     public ScheduleSection? ActiveSection { get; private set; }
     public bool IsOpen => ActiveSection.HasValue;
@@ -101,10 +104,12 @@ internal sealed class SchedulePanel
 
     public SchedulePanel(
         ScheduleManager manager,
+        ScheduleEvaluator evaluator,
         ScheduleConditionCatalog conditionCatalog,
         IEnumerable<OutfitTag> tags)
     {
         _manager = manager;
+        _evaluator = evaluator;
         _conditionCatalog = conditionCatalog;
         _tags = tags.ToList();
         _rules = manager.LoadRules();
@@ -214,6 +219,7 @@ internal sealed class SchedulePanel
         ActiveSection = null;
         _selectedRuleId = null;
         _outfitSelectionRuleId = null;
+        _nameEditRuleId = null;
     }
 
     public void Draw(SpriteBatch b)
@@ -297,6 +303,12 @@ internal sealed class SchedulePanel
 
         if (_enabledButton.Contains(x, y))
             selected.Enabled = !selected.Enabled;
+        else if (_nameButton.Contains(x, y))
+        {
+            _nameEditRuleId = selected.Id;
+            Game1.playSound("smallSelect");
+            return true;
+        }
         else if (_festivalButton.Contains(x, y))
         {
             OpenConditionPicker(ConditionPickerKind.Festival, selected);
@@ -512,6 +524,37 @@ internal sealed class SchedulePanel
         return rule is not null;
     }
 
+    public bool TryBeginNameEdit(out OutfitScheduleRule? rule)
+    {
+        rule = null;
+        if (_nameEditRuleId is null)
+            return false;
+
+        rule = _rules.FirstOrDefault(candidate => candidate.Id == _nameEditRuleId);
+        _nameEditRuleId = null;
+        return rule is not null;
+    }
+
+    public void SetRuleName(string ruleId, string name)
+    {
+        OutfitScheduleRule? rule = _rules.FirstOrDefault(candidate => candidate.Id == ruleId);
+        if (rule is null)
+            return;
+
+        string normalized = name.Trim();
+        rule.Name = normalized.Length > 32 ? normalized[..32] : normalized;
+        Save();
+    }
+
+    public string GetRuleDisplayName(OutfitScheduleRule rule)
+    {
+        if (!string.IsNullOrWhiteSpace(rule.Name))
+            return rule.Name;
+
+        int index = _rules.Where(candidate => candidate.Section == rule.Section).ToList().FindIndex(candidate => candidate.Id == rule.Id);
+        return I18n.ScheduleRuleNumber(Math.Max(0, index) + 1);
+    }
+
     public void SetSelectedOutfits(
         string ruleId,
         IEnumerable<string> outfitNames,
@@ -548,6 +591,9 @@ internal sealed class SchedulePanel
                 if (rule.OutfitNames[i].Equals(oldName, StringComparison.OrdinalIgnoreCase))
                     rule.OutfitNames[i] = newName;
             }
+
+            if (rule.LastOutfitName.Equals(oldName, StringComparison.OrdinalIgnoreCase))
+                rule.LastOutfitName = newName;
         }
 
         Save();
@@ -557,7 +603,11 @@ internal sealed class SchedulePanel
     {
         HashSet<string> removed = new(outfitNames, StringComparer.OrdinalIgnoreCase);
         foreach (OutfitScheduleRule rule in _rules)
+        {
             rule.OutfitNames.RemoveAll(removed.Contains);
+            if (removed.Contains(rule.LastOutfitName))
+                rule.LastOutfitName = string.Empty;
+        }
         Save();
     }
 
@@ -586,15 +636,21 @@ internal sealed class SchedulePanel
         int number = _ruleScroll + 1;
         foreach (OutfitScheduleRule rule in sectionRules.Skip(_ruleScroll).Take(_ruleVisibleCount))
         {
-            Rectangle card = new(_ruleListViewport.X, y, _ruleListViewport.Width, 66);
+            int cardWidth = maxRuleScroll > 0
+                ? _ruleListViewport.Width
+                : list.Right - 10 - _ruleListViewport.X;
+            Rectangle card = new(_ruleListViewport.X, y, cardWidth, 66);
             _ruleCards[rule.Id] = card;
             bool selected = rule.Id == _selectedRuleId;
             bool hovered = card.Contains(Game1.getMouseX(), Game1.getMouseY());
             b.Draw(Game1.staminaRect, card,
                 selected ? Color.SandyBrown * 0.35f : hovered ? Color.Wheat * 0.25f : Color.White * 0.01f);
 
-            string heading = I18n.ScheduleRuleNumber(number++);
-            Utility.drawTextWithShadow(b, heading, Game1.smallFont,
+            string heading = string.IsNullOrWhiteSpace(rule.Name)
+                ? I18n.ScheduleRuleNumber(number)
+                : rule.Name;
+            number++;
+            Utility.drawTextWithShadow(b, Truncate(heading, card.Width - 20), Game1.smallFont,
                 new Vector2(card.X + 10, card.Y + 7), rule.Enabled ? Game1.textColor : Color.Gray);
 
             string scheduleSummary = rule.Section == ScheduleSection.Festivals
@@ -669,7 +725,7 @@ internal sealed class SchedulePanel
         int extraTimeRowsHeight = Math.Max(0, chipRows - 1) * 46;
 
         bool festivalRule = rule.Section == ScheduleSection.Festivals;
-        int contentHeight = 18 + 58 + 88 + (!festivalRule && rule.DayMode == ScheduleDayMode.Multiple ? 76 : 0)
+        int contentHeight = 18 + 58 + 76 + 88 + (!festivalRule && rule.DayMode == ScheduleDayMode.Multiple ? 76 : 0)
             + 88 + 90 + extraTimeRowsHeight + 54 + Math.Max(1, outfitLines.Count) * 26 + 16;
         _editorMaxScroll = Math.Max(0, contentHeight - _editorViewport.Height);
         _editorScrollPixels = Math.Clamp(_editorScrollPixels, 0, _editorMaxScroll);
@@ -685,12 +741,38 @@ internal sealed class SchedulePanel
         _weatherButton = Rectangle.Empty;
         _locationButton = Rectangle.Empty;
 
-        _enabledButton = new Rectangle(x, y, 150, fieldH);
-        DrawEditorButton(b, _enabledButton, rule.Enabled ? I18n.ScheduleEnabled : I18n.ScheduleDisabled,
-            rule.Enabled ? Color.PaleGreen : Color.LightGray);
+        _enabledButton = new Rectangle(x, y, 170, fieldH);
+        string statusLabel;
+        Color statusColor;
+        if (!rule.Enabled)
+        {
+            statusLabel = I18n.ScheduleDisabled;
+            statusColor = Color.LightGray;
+        }
+        else if (rule.Id == _evaluator.GetWinningRuleId(_rules))
+        {
+            statusLabel = I18n.ScheduleActiveNow;
+            statusColor = Color.PaleGreen;
+        }
+        else if (_evaluator.IsRuleMatchingNow(rule))
+        {
+            statusLabel = I18n.ScheduleWaiting;
+            statusColor = Color.Khaki;
+        }
+        else
+        {
+            statusLabel = I18n.ScheduleEnabled;
+            statusColor = Color.PaleGreen;
+        }
+        DrawEditorButton(b, _enabledButton, statusLabel, statusColor);
         _deleteButton = new Rectangle(_editorViewport.Right - 120, y, 120, fieldH);
         DrawEditorButton(b, _deleteButton, I18n.ScheduleDelete, Color.Salmon);
         y += 58;
+
+        DrawEditorLabel(b, I18n.ScheduleNameOptional, x, y);
+        _nameButton = new Rectangle(x, y + 28, Math.Min(420, _editorViewport.Width - 16), fieldH);
+        DrawEditorButton(b, _nameButton, GetRuleDisplayName(rule), Color.Wheat);
+        y += 76;
 
         int col2 = secondColumnX;
         if (festivalRule)

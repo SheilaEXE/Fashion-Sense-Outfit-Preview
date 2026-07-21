@@ -49,6 +49,7 @@ internal enum ScheduleLocation
 internal sealed class OutfitScheduleRule
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = string.Empty;
     public ScheduleSection Section { get; set; } = ScheduleSection.Spring;
     public bool Enabled { get; set; } = true;
     public ScheduleDayMode DayMode { get; set; } = ScheduleDayMode.All;
@@ -65,4 +66,5 @@ internal sealed class OutfitScheduleRule
     public List<string> FestivalIds { get; set; } = new();
     public List<string> OutfitNames { get; set; } = new();
     public List<string> TagIds { get; set; } = new();
+    public string LastOutfitName { get; set; } = string.Empty;
 }

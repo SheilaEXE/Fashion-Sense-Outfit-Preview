@@ -198,4 +198,8 @@ internal static class I18n
     public static string ScheduleOutfitsShort => Get("ui.schedule.outfits_short");
     public static string ScheduleTagsShort    => Get("ui.schedule.tags_short");
     public static string ScheduleWholeTag     => Get("ui.schedule.whole_tag");
+    public static string ScheduleNameOptional => Get("ui.schedule.name_optional");
+    public static string ScheduleNameTitle    => Get("ui.schedule.name_title");
+    public static string ScheduleActiveNow    => Get("ui.schedule.active_now");
+    public static string ScheduleWaiting      => Get("ui.schedule.waiting");
 }

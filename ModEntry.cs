@@ -305,7 +305,7 @@ internal sealed class ModEntry : Mod
         List<string> outfitNames = GetAllOutfitNames(fashionSenseMenu);
 
         var expanded = new ExpandedOutfitsMenu(_categoryManager, _tagManager, _organizationManager,
-            _scheduleManager, _scheduleConditionCatalog, _renderer, outfitNames, fashionSenseMenu);
+            _scheduleManager, _scheduleEvaluator, _scheduleConditionCatalog, _renderer, outfitNames, fashionSenseMenu);
         Game1.activeClickableMenu = expanded;
 
         Game1.playSound("bigSelect");
